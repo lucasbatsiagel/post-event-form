@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Weekly Report{% endblock %}
+{% block nav %}<a href="{{ url_for('admin_events') }}">Events</a> &nbsp;|&nbsp; <a href="{{ url_for('admin_logout') }}">Log out</a>{% endblock %}
+
+{% block content %}
+<div class="card">
+  <h2>Return report</h2>
+  <p class="subtitle">Submissions from the last {{ days }} days.</p>
+  <form method="get" style="display:flex; gap:8px; align-items:center;">
+    <label for="days" style="margin:0;">Show last</label>
+    <select name="days" id="days" onchange="this.form.submit()" style="width:auto;">
+      {% for d in [7, 14, 30, 90] %}
+        <option value="{{ d }}" {{ 'selected' if d == days else '' }}>{{ d }} days</option>
+      {% endfor %}
+    </select>
+  </form>
+</div>
+
+{% if rows %}
+  {% for row in rows %}
+  <div class="card">
+    <h3>{{ row.event_name }} &mdash; {{ row.event_date }}</h3>
+    <div class="event-meta">Reported by {{ row.tech_name }} on {{ row.submitted_at[:10] }}</div>
+
+    {% if row.misplaced_items %}
+      <div style="margin-top:10px;">
+        {% for i in row.misplaced_items %}
+          <span class="tag tag-misplaced">{{ i.item }}{% if i.detail %} &rarr; {{ i.detail }}{% endif %}</span>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% if row.missing_items %}
+      <div style="margin-top:6px;">
+        {% for i in row.missing_items %}
+          <span class="tag tag-missing">{{ i.item }}{% if i.detail %} &mdash; {{ i.detail }}{% endif %}</span>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% if row.broken_items %}
+      <div style="margin-top:6px;">
+        {% for i in row.broken_items %}
+          <span class="tag tag-broken">{{ i.item }}{% if i.detail %} &mdash; {{ i.detail }}{% endif %}</span>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% if row.notes %}
+      <p style="margin-top:10px; margin-bottom:0;">{{ row.notes }}</p>
+    {% endif %}
+
+    {% if not (row.misplaced_items or row.missing_items or row.broken_items or row.notes) %}
+      <p class="event-meta" style="margin-top:10px;">Nothing flagged &mdash; clean return.</p>
+    {% endif %}
+  </div>
+  {% endfor %}
+{% else %}
+  <div class="card"><div class="empty-state">No reports in this window.</div></div>
+{% endif %}
+{% endblock %}

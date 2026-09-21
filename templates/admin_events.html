@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Manage Events{% endblock %}
+{% block nav %}<a href="{{ url_for('admin_report') }}">Report</a> &nbsp;|&nbsp; <a href="{{ url_for('admin_logout') }}">Log out</a>{% endblock %}
+
+{% block content %}
+<div class="card">
+  <h3>Add an event</h3>
+  <form method="post">
+    <label for="name">Event name</label>
+    <input type="text" name="name" id="name" placeholder="e.g. Smith Wedding" required>
+    <label for="event_date">Event date</label>
+    <input type="date" name="event_date" id="event_date" value="{{ today }}" required>
+    <button type="submit" class="btn btn-block">Add event</button>
+  </form>
+</div>
+
+<div class="card">
+  <h3>Events</h3>
+  {% if events %}
+    {% for event in events %}
+      <div class="event-row">
+        <div>
+          <div>{{ event.name }}</div>
+          <div class="event-meta">{{ event.event_date.strftime('%-m/%-d/%Y') }} &middot;
+            <span class="pill {{ 'pill-active' if event.active else 'pill-inactive' }}">
+              {{ 'Open' if event.active else 'Closed' }}
+            </span>
+          </div>
+        </div>
+        <div class="event-actions">
+          <form method="post" action="{{ url_for('toggle_event', event_id=event.id) }}">
+            <button type="submit" class="btn btn-secondary btn-small">{{ 'Close' if event.active else 'Reopen' }}</button>
+          </form>
+          <form method="post" action="{{ url_for('delete_event', event_id=event.id) }}" onsubmit="return confirm('Delete this event? This cannot be undone.');">
+            <button type="submit" class="btn btn-danger btn-small">Delete</button>
+          </form>
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="empty-state">No events yet.</div>
+  {% endif %}
+</div>
+{% endblock %}

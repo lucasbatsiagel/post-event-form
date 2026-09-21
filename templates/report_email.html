@@ -1,0 +1,51 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0; padding:0; background:#f5f6f8; font-family:-apple-system,Helvetica,Arial,sans-serif; color:#1b2430;">
+<div style="max-width:640px; margin:0 auto; padding:20px 16px;">
+  <h1 style="font-size:1.2rem; margin:0 0 4px;">Warehouse Return Report</h1>
+  <p style="color:#4a5568; font-size:0.9rem; margin:0 0 20px;">Submissions from the last {{ days }} days &mdash; generated {{ rows|length }} report(s).</p>
+
+  {% if rows %}
+    {% for row in rows %}
+    <div style="background:#fff; border:1px solid #dde1e7; border-radius:10px; padding:16px; margin-bottom:14px;">
+      <h2 style="font-size:1rem; margin:0 0 2px;">{{ row.event_name }} &mdash; {{ row.event_date }}</h2>
+      <div style="color:#4a5568; font-size:0.85rem; margin-bottom:10px;">Reported by {{ row.tech_name }}</div>
+
+      {% if row.misplaced_items %}
+        <div style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.05em; color:#8a6300; font-weight:700; margin-top:8px;">Misplaced</div>
+        <ul style="margin:4px 0; padding-left:18px;">
+          {% for i in row.misplaced_items %}<li>{{ i.item }}{% if i.detail %} &mdash; should be in {{ i.detail }}{% endif %}</li>{% endfor %}
+        </ul>
+      {% endif %}
+
+      {% if row.missing_items %}
+        <div style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.05em; color:#b3541e; font-weight:700; margin-top:8px;">Missing</div>
+        <ul style="margin:4px 0; padding-left:18px;">
+          {% for i in row.missing_items %}<li>{{ i.item }}{% if i.detail %} &mdash; {{ i.detail }}{% endif %}</li>{% endfor %}
+        </ul>
+      {% endif %}
+
+      {% if row.broken_items %}
+        <div style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.05em; color:#b3261e; font-weight:700; margin-top:8px;">Broken / damaged</div>
+        <ul style="margin:4px 0; padding-left:18px;">
+          {% for i in row.broken_items %}<li>{{ i.item }}{% if i.detail %} &mdash; {{ i.detail }}{% endif %}</li>{% endfor %}
+        </ul>
+      {% endif %}
+
+      {% if row.notes %}
+        <div style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.05em; color:#4a5568; font-weight:700; margin-top:8px;">Notes</div>
+        <p style="margin:4px 0;">{{ row.notes }}</p>
+      {% endif %}
+
+      {% if not (row.misplaced_items or row.missing_items or row.broken_items or row.notes) %}
+        <p style="color:#4a5568; font-size:0.85rem; margin:6px 0 0;">Nothing flagged &mdash; clean return.</p>
+      {% endif %}
+    </div>
+    {% endfor %}
+  {% else %}
+    <p style="color:#4a5568;">No reports were submitted in this window.</p>
+  {% endif %}
+</div>
+</body>
+</html>

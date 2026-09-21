@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Post-Event Report{% endblock %}
+{% block nav %}<a href="{{ url_for('admin_login') }}">Admin</a>{% endblock %}
+
+{% block content %}
+<div class="card">
+  <h2>Warehouse return report</h2>
+  <p class="subtitle">Fill this out at the warehouse when returning from an event. One form per event, per tech lead.</p>
+
+  {% if events %}
+  <form method="post" action="{{ url_for('submit') }}" id="report-form">
+    <label for="event_id">Which event were you at?</label>
+    <select name="event_id" id="event_id" required>
+      <option value="" disabled selected>Select an event&hellip;</option>
+      {% for event in events %}
+        <option value="{{ event.id }}">{{ event.name }} &mdash; {{ event.event_date.strftime('%-m/%-d/%Y') }}</option>
+      {% endfor %}
+    </select>
+
+    <label for="tech_name">Your name</label>
+    <input type="text" name="tech_name" id="tech_name" placeholder="e.g. Jordan Reyes" required>
+
+    <span class="section-label">Misplaced items (not in their case/kit)</span>
+    <div id="misplaced-rows"></div>
+    <button type="button" class="add-row" data-target="misplaced-rows" data-item-placeholder="Item name" data-detail-placeholder="Should be in which case/kit?">+ Add misplaced item</button>
+
+    <span class="section-label">Missing items</span>
+    <div id="missing-rows"></div>
+    <button type="button" class="add-row" data-target="missing-rows" data-item-placeholder="Item name" data-detail-placeholder="Notes (optional)">+ Add missing item</button>
+
+    <span class="section-label">Broken / damaged items</span>
+    <div id="broken-rows"></div>
+    <button type="button" class="add-row" data-target="broken-rows" data-item-placeholder="Item name" data-detail-placeholder="Describe the damage">+ Add broken item</button>
+
+    <span class="section-label">Anything else to flag?</span>
+    <textarea name="notes" placeholder="Truck issues, venue problems, safety concerns, anything the warehouse team should know before Monday..."></textarea>
+
+    <button type="submit" class="btn btn-block">Submit report</button>
+  </form>
+  {% else %}
+  <div class="empty-state">
+    No events are open for reporting right now.<br>Ask your manager to add this event in <a href="{{ url_for('admin_login') }}">Admin</a>.
+  </div>
+  {% endif %}
+</div>
+
+<template id="row-template">
+  <div class="item-row">
+    <input type="text" class="row-item">
+    <input type="text" class="row-detail">
+    <button type="button" class="remove-row" aria-label="Remove row">&times;</button>
+  </div>
+</template>
+
+<script>
+(function () {
+  const rowTemplate = document.getElementById('row-template');
+  const fieldNames = {
+    'misplaced-rows': ['misplaced_item', 'misplaced_kit'],
+    'missing-rows': ['missing_item', 'missing_notes'],
+    'broken-rows': ['broken_item', 'broken_notes'],
+  };
+
+  function addRow(containerId, itemPlaceholder, detailPlaceholder) {
+    const container = document.getElementById(containerId);
+    const clone = rowTemplate.content.cloneNode(true);
+    const [itemName, detailName] = fieldNames[containerId];
+    const itemInput = clone.querySelector('.row-item');
+    const detailInput = clone.querySelector('.row-detail');
+    itemInput.name = itemName;
+    itemInput.placeholder = itemPlaceholder;
+    detailInput.name = detailName;
+    detailInput.placeholder = detailPlaceholder;
+    clone.querySelector('.remove-row').addEventListener('click', function (e) {
+      e.target.closest('.item-row').remove();
+    });
+    container.appendChild(clone);
+  }
+
+  document.querySelectorAll('.add-row').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      addRow(btn.dataset.target, btn.dataset.itemPlaceholder, btn.dataset.detailPlaceholder);
+    });
+    // Start each section with one visible row.
+    addRow(btn.dataset.target, btn.dataset.itemPlaceholder, btn.dataset.detailPlaceholder);
+  });
+})();
+</script>
+{% endblock %}

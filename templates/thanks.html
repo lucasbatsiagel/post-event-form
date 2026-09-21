@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Submitted{% endblock %}
+
+{% block content %}
+<div class="card">
+  <h2>Thanks, {{ tech_name }}!</h2>
+  <p class="subtitle">Your report for <strong>{{ event.name }}</strong> ({{ event.event_date.strftime('%-m/%-d/%Y') }}) has been recorded.</p>
+  <a href="{{ url_for('index') }}" class="btn btn-block">Submit another report</a>
+</div>
+{% endblock %}
