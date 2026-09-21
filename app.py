@@ -13,9 +13,18 @@ from models import db, Event, Submission
 
 load_dotenv()
 
+def _normalized_db_url():
+    url = os.environ.get("DATABASE_URL", "sqlite:///pullsheets.db")
+    # Render/Heroku-style URLs use the old "postgres://" scheme; SQLAlchemy 1.4+
+    # requires "postgresql://".
+    if url.startswith("postgres://"):
+        url = url.replace("postgres://", "postgresql://", 1)
+    return url
+
+
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-change-me")
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///pullsheets.db")
+app.config["SQLALCHEMY_DATABASE_URI"] = _normalized_db_url()
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 ADMIN_PIN = os.environ.get("ADMIN_PIN", "1234")

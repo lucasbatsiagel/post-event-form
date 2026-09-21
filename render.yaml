@@ -1,0 +1,22 @@
+databases:
+  - name: post-event-form-db
+    plan: free
+
+services:
+  - type: web
+    name: post-event-form
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: post-event-form-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ADMIN_PIN
+        sync: false
+      - key: REPORT_TOKEN
+        generateValue: true
