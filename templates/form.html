@@ -4,8 +4,8 @@
 
 {% block content %}
 <div class="card">
-  <h2>Warehouse return report</h2>
-  <p class="subtitle">Fill this out at the warehouse when returning from an event. One form per event, per tech lead.</p>
+  <h2>Warehouse Return Report</h2>
+  <p class="subtitle">Fill this out at the warehouse when returning from an event. One form per event.</p>
 
   {% if events %}
   <form method="post" action="{{ url_for('submit') }}" id="report-form">
