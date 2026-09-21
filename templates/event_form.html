@@ -4,21 +4,15 @@
 
 {% block content %}
 <div class="card">
-  <h2>Warehouse Return Report</h2>
-  <p class="subtitle">Fill this out at the warehouse when returning from an event. One form per event.</p>
+  <a href="{{ url_for('index') }}" class="back-link">&larr; Change event</a>
+  <h2>{{ event.name }}</h2>
+  <p class="subtitle">{{ event.event_date.strftime('%-m/%-d/%Y') }}</p>
 
-  {% if events %}
   <form method="post" action="{{ url_for('submit') }}" id="report-form">
-    <label for="event_id">Which event were you at?</label>
-    <select name="event_id" id="event_id" required>
-      <option value="" disabled selected>Select an event&hellip;</option>
-      {% for event in events %}
-        <option value="{{ event.id }}">{{ event.name }} &mdash; {{ event.event_date.strftime('%-m/%-d/%Y') }}</option>
-      {% endfor %}
-    </select>
+    <input type="hidden" name="event_id" value="{{ event.id }}">
 
     <label for="tech_name">Your name</label>
-    <input type="text" name="tech_name" id="tech_name" placeholder="e.g. NB" required>
+    <input type="text" name="tech_name" id="tech_name" placeholder="e.g. NB" required autofocus>
 
     <span class="section-label">Misplaced items (not in their case/kit)</span>
     <div id="misplaced-rows"></div>
@@ -37,11 +31,6 @@
 
     <button type="submit" class="btn btn-block">Submit report</button>
   </form>
-  {% else %}
-  <div class="empty-state">
-    No events are open for reporting right now.<br>Ask your manager to add this event in <a href="{{ url_for('admin_login') }}">Admin</a>.
-  </div>
-  {% endif %}
 </div>
 
 <template id="row-template">

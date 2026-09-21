@@ -52,7 +52,16 @@ def parse_item_rows(item_key, detail_key):
 @app.route("/")
 def index():
     events = Event.query.filter_by(active=True).order_by(Event.event_date.desc()).all()
-    return render_template("form.html", events=events)
+    return render_template("event_select.html", events=events)
+
+
+@app.route("/event/<int:event_id>")
+def event_form(event_id):
+    event = Event.query.filter_by(id=event_id, active=True).first()
+    if not event:
+        flash("That event isn't open for reporting. Please pick again.", "error")
+        return redirect(url_for("index"))
+    return render_template("event_form.html", event=event)
 
 
 @app.route("/submit", methods=["POST"])

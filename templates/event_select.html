@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Post-Event Report{% endblock %}
+{% block nav %}<a href="{{ url_for('admin_login') }}">Admin</a>{% endblock %}
+
+{% block content %}
+<div class="card">
+  <h2>Warehouse Return Report</h2>
+  <p class="subtitle">Fill this out at the warehouse when returning from an event. One form per event.</p>
+
+  {% if events %}
+  <span class="section-label" style="margin-top:0;">Which event were you at?</span>
+  <div class="event-grid">
+    {% for event in events %}
+      <a class="event-tile" href="{{ url_for('event_form', event_id=event.id) }}">
+        <span class="event-tile-name">{{ event.name }}</span>
+        <span class="event-tile-date">{{ event.event_date.strftime('%-m/%-d/%Y') }}</span>
+      </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    No events are open for reporting right now.<br>Ask your manager to add this event in <a href="{{ url_for('admin_login') }}">Admin</a>.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
