@@ -1,10 +1,13 @@
+import io
 import json
 import os
 from datetime import datetime, timedelta, date
 from functools import wraps
 
+import qrcode
+import qrcode.image.svg
 from dotenv import load_dotenv
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, abort
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, abort, Response
 
 from models import db, Event, Submission
 
@@ -62,6 +65,16 @@ def event_form(event_id):
         flash("That event isn't open for reporting. Please pick again.", "error")
         return redirect(url_for("index"))
     return render_template("event_form.html", event=event)
+
+
+@app.route("/event/<int:event_id>/qr.svg")
+def event_qr(event_id):
+    event = Event.query.filter_by(id=event_id, active=True).first_or_404()
+    form_url = url_for("event_form", event_id=event.id, _external=True)
+    img = qrcode.make(form_url, image_factory=qrcode.image.svg.SvgPathImage)
+    buf = io.BytesIO()
+    img.save(buf)
+    return Response(buf.getvalue(), mimetype="image/svg+xml")
 
 
 @app.route("/submit", methods=["POST"])

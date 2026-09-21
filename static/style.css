@@ -207,6 +207,47 @@ th { color: var(--ink-soft); font-size: 0.75rem; text-transform: uppercase; lett
   padding: 30px 10px;
 }
 
+.phone-toggle {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0;
+  margin: 10px 0 0;
+  cursor: pointer;
+}
+.phone-toggle:hover { color: var(--accent-dark); }
+
+.phone-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px;
+  margin-top: 12px;
+}
+
+.phone-qr {
+  width: 140px;
+  height: 140px;
+}
+
+.phone-panel-hint {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+
+.phone-link-fallback {
+  text-align: center;
+  font-size: 0.8rem;
+  margin-top: 4px;
+}
+
 .back-link {
   display: inline-block;
   font-size: 0.85rem;

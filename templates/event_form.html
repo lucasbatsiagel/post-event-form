@@ -8,6 +8,14 @@
   <h2>{{ event.name }}</h2>
   <p class="subtitle">{{ event.event_date.strftime('%-m/%-d/%Y') }}</p>
 
+  <button type="button" class="phone-toggle" id="phone-toggle">Fill this out on your phone instead &rarr;</button>
+  <div class="phone-panel" id="phone-panel" hidden>
+    <img src="{{ url_for('event_qr', event_id=event.id) }}" alt="QR code to open this form" class="phone-qr">
+    <p class="phone-panel-hint">Scan with your phone's camera</p>
+    <button type="button" class="btn btn-secondary btn-small" id="share-link-btn">Share link</button>
+    <input type="text" id="share-link-fallback" class="phone-link-fallback" readonly hidden>
+  </div>
+
   <form method="post" action="{{ url_for('submit') }}" id="report-form">
     <input type="hidden" name="event_id" value="{{ event.id }}">
 
@@ -72,6 +80,40 @@
     });
     // Start each section with one visible row.
     addRow(btn.dataset.target, btn.dataset.itemPlaceholder, btn.dataset.detailPlaceholder);
+  });
+
+  const phoneToggle = document.getElementById('phone-toggle');
+  const phonePanel = document.getElementById('phone-panel');
+  phoneToggle.addEventListener('click', function () {
+    const opening = phonePanel.hidden;
+    phonePanel.hidden = !opening;
+    phoneToggle.textContent = opening
+      ? 'Hide phone options'
+      : "Fill this out on your phone instead →";
+  });
+
+  const shareBtn = document.getElementById('share-link-btn');
+  const shareFallback = document.getElementById('share-link-fallback');
+  shareBtn.addEventListener('click', async function () {
+    const url = window.location.href;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: document.title, url: url });
+      } catch (err) {
+        /* user cancelled the share sheet — nothing to do */
+      }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      shareBtn.textContent = 'Link copied!';
+      setTimeout(function () { shareBtn.textContent = 'Share link'; }, 2000);
+    } catch (err) {
+      shareFallback.value = url;
+      shareFallback.hidden = false;
+      shareFallback.focus();
+      shareFallback.select();
+    }
   });
 })();
 </script>
