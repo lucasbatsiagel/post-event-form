@@ -1,11 +1,11 @@
 :root {
-  --ink: #1b2430;
-  --ink-soft: #4a5568;
-  --paper: #f5f6f8;
+  --ink: #181818;
+  --ink-soft: #58565a;
+  --paper: #f6f5f4;
   --card: #ffffff;
-  --line: #dde1e7;
-  --accent: #d9622b;
-  --accent-dark: #b94f1f;
+  --line: #e3dfde;
+  --accent: #7c211d;
+  --accent-dark: #5c1815;
   --good: #2f7d4f;
   --warn: #b3541e;
   --bad: #b3261e;
@@ -31,6 +31,7 @@ header.topbar {
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
+  border-bottom: 3px solid var(--accent);
 }
 
 header.topbar h1 {
@@ -90,6 +91,14 @@ textarea {
 }
 
 textarea { resize: vertical; min-height: 70px; }
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(124, 33, 29, 0.12);
+}
 
 .item-row {
   display: grid;
