@@ -1,6 +1,7 @@
 import io
 import json
 import os
+import re
 from datetime import datetime, timedelta, date
 from functools import wraps
 
@@ -15,10 +16,11 @@ load_dotenv()
 
 def _normalized_db_url():
     url = os.environ.get("DATABASE_URL", "sqlite:///pullsheets.db")
-    # Render/Heroku-style URLs use the old "postgres://" scheme; SQLAlchemy 1.4+
-    # requires "postgresql://".
-    if url.startswith("postgres://"):
-        url = url.replace("postgres://", "postgresql://", 1)
+    # Render/Heroku-style URLs use the old "postgres://" scheme, and some
+    # providers (e.g. Neon) hand out "postgresql+psycopg://" (driver v3).
+    # Force the psycopg2 driver, which is the one actually installed.
+    if url.startswith(("postgres://", "postgresql://", "postgresql+")):
+        url = re.sub(r"^postgres(ql)?(\+\w+)?://", "postgresql+psycopg2://", url, count=1)
     return url
 
 
