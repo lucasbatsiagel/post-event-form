@@ -1,15 +1,19 @@
 :root {
   --ink: #181818;
   --ink-soft: #58565a;
-  --paper: #f6f5f4;
+  --paper: #f7f6fa;
   --card: #ffffff;
-  --line: #e3dfde;
-  --accent: #7c211d;
-  --accent-dark: #5c1815;
+  --line: #e5e1e8;
+  --accent: #7c2f9e;
+  --accent-dark: #5c1f79;
+  --brand-red: #e2382f;
+  --brand-purple: #7a3fa0;
+  --brand-blue: #2f6fd6;
+  --brand-gradient: linear-gradient(90deg, var(--brand-red), var(--brand-purple) 55%, var(--brand-blue));
   --good: #2f7d4f;
   --warn: #b3541e;
   --bad: #b3261e;
-  --radius: 10px;
+  --radius: 14px;
 }
 
 * { box-sizing: border-box; }
@@ -17,52 +21,98 @@
 body {
   margin: 0;
   padding: 0;
-  background: var(--paper);
+  background:
+    radial-gradient(1100px 480px at 15% -10%, rgba(226, 56, 47, 0.06), transparent 60%),
+    radial-gradient(1100px 480px at 100% 0%, rgba(47, 111, 214, 0.07), transparent 55%),
+    var(--paper);
   color: var(--ink);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   line-height: 1.4;
 }
 
 header.topbar {
-  background: var(--ink);
-  color: #fff;
-  padding: 14px 18px;
+  background: #ffffff;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+}
+
+.topbar-inner {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 14px 16px;
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
-  border-bottom: 3px solid var(--accent);
 }
 
-header.topbar h1 {
-  font-size: 1.05rem;
-  margin: 0;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-}
-
-header.topbar a {
-  color: #cfd6e0;
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   text-decoration: none;
+  min-width: 0;
+}
+
+.brand-logo {
+  height: 28px;
+  width: auto;
+  display: block;
+  flex-shrink: 0;
+}
+
+.brand-tagline {
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  border-left: 1px solid var(--line);
+  padding-left: 10px;
+}
+
+.topbar-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   font-size: 0.85rem;
+}
+
+.topbar-nav a {
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 999px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.topbar-nav a:hover {
+  background: var(--paper);
+  color: var(--accent);
+}
+
+.topbar-bar {
+  height: 3px;
+  background: var(--brand-gradient);
 }
 
 main {
   max-width: 640px;
   margin: 0 auto;
-  padding: 20px 16px 60px;
+  padding: 24px 16px 60px;
 }
 
 .card {
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  padding: 18px;
+  padding: 20px;
   margin-bottom: 16px;
+  box-shadow: 0 1px 2px rgba(20, 10, 30, 0.03), 0 10px 30px rgba(20, 10, 30, 0.04);
 }
 
-h2 { font-size: 1.15rem; margin: 0 0 4px; }
-h3 { font-size: 1rem; margin: 0 0 10px; }
+h2 { font-size: 1.25rem; font-weight: 800; letter-spacing: -0.01em; margin: 0 0 4px; }
+h3 { font-size: 1.05rem; font-weight: 700; margin: 0 0 10px; }
 .subtitle { color: var(--ink-soft); font-size: 0.9rem; margin: 0 0 18px; }
 
 label {
@@ -97,7 +147,7 @@ select:focus,
 textarea:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(124, 33, 29, 0.12);
+  box-shadow: 0 0 0 3px rgba(122, 63, 160, 0.15);
 }
 
 .item-row {
@@ -138,22 +188,25 @@ textarea:focus {
 
 .btn {
   display: inline-block;
-  background: var(--accent);
+  background: var(--brand-gradient);
   color: #fff;
   border: none;
   padding: 12px 20px;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   text-decoration: none;
   text-align: center;
+  box-shadow: 0 6px 16px rgba(122, 63, 160, 0.22);
+  transition: filter 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.btn:hover { background: var(--accent-dark); }
+.btn:hover { filter: brightness(1.06); transform: translateY(-1px); box-shadow: 0 8px 20px rgba(122, 63, 160, 0.28); }
+.btn:active { transform: translateY(0); filter: brightness(0.97); }
 .btn-block { display: block; width: 100%; margin-top: 18px; }
-.btn-secondary { background: var(--ink-soft); }
-.btn-danger { background: var(--bad); }
+.btn-secondary { background: var(--ink-soft); box-shadow: none; }
+.btn-danger { background: var(--bad); box-shadow: none; }
 .btn-small { padding: 6px 12px; font-size: 0.85rem; }
 
 .flash {
@@ -212,7 +265,7 @@ th { color: var(--ink-soft); font-size: 0.75rem; text-transform: uppercase; lett
   border: none;
   color: var(--accent);
   font-size: 0.85rem;
-  font-weight: 600;
+  font-weight: 700;
   padding: 0;
   margin: 10px 0 0;
   cursor: pointer;
@@ -251,6 +304,7 @@ th { color: var(--ink-soft); font-size: 0.75rem; text-transform: uppercase; lett
 .back-link {
   display: inline-block;
   font-size: 0.85rem;
+  font-weight: 600;
   color: var(--ink-soft);
   text-decoration: none;
   margin-bottom: 12px;
@@ -268,6 +322,7 @@ th { color: var(--ink-soft); font-size: 0.75rem; text-transform: uppercase; lett
 }
 
 .event-tile {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -280,14 +335,27 @@ th { color: var(--ink-soft); font-size: 0.75rem; text-transform: uppercase; lett
   border-radius: 20px;
   padding: 26px 16px;
   color: var(--ink);
+  overflow: hidden;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
 
-.event-tile:hover {
-  border-color: var(--accent);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
-  transform: translateY(-1px);
+.event-tile::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  background: var(--brand-gradient);
+  opacity: 0;
+  transition: opacity 0.15s ease;
 }
+
+.event-tile:hover {
+  border-color: transparent;
+  box-shadow: 0 8px 20px rgba(122, 63, 160, 0.14);
+  transform: translateY(-2px);
+}
+
+.event-tile:hover::before { opacity: 1; }
 
 .event-tile-name {
   font-weight: 700;

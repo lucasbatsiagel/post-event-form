@@ -4,12 +4,22 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Post-Event Report{% endblock %}</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/siagel-logo.png') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
   <header class="topbar">
-    <h1>Post-Event Report</h1>
-    {% block nav %}{% endblock %}
+    <div class="topbar-inner">
+      <a href="{{ url_for('index') }}" class="brand">
+        <img src="{{ url_for('static', filename='img/siagel-logo.png') }}" alt="Siagel" class="brand-logo">
+        <span class="brand-tagline">Post-Event Report</span>
+      </a>
+      <nav class="topbar-nav">{% block nav %}{% endblock %}</nav>
+    </div>
+    <div class="topbar-bar"></div>
   </header>
   <main>
     {% with messages = get_flashed_messages(with_categories=true) %}
