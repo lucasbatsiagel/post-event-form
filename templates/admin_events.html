@@ -3,6 +3,14 @@
 {% block nav %}<a href="{{ url_for('admin_report') }}">Report</a> &nbsp;|&nbsp; <a href="{{ url_for('admin_logout') }}">Log out</a>{% endblock %}
 
 {% block content %}
+<div class="card" style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+  <div>
+    <h3 style="margin-bottom:2px;">Weekend report</h3>
+    <div class="event-meta">A concise summary of this weekend's submissions.</div>
+  </div>
+  <a href="{{ url_for('admin_report_weekend') }}" class="btn btn-small">View report</a>
+</div>
+
 <div class="card">
   <h3>Add an event</h3>
   <form method="post">

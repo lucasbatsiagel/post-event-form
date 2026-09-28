@@ -216,6 +216,68 @@ def admin_report():
     return render_template("report.html", rows=rows, days=days)
 
 
+def weekend_bounds(reference=None):
+    """Return (friday, sunday) for the weekend most relevant to `reference`:
+    the current weekend if today is Fri/Sat/Sun, otherwise the last one."""
+    ref = reference or date.today()
+    weekday = ref.weekday()  # Monday=0 ... Sunday=6
+    if weekday >= 4:
+        friday = ref - timedelta(days=weekday - 4)
+    else:
+        friday = ref - timedelta(days=weekday + 3)
+    return friday, friday + timedelta(days=2)
+
+
+def build_weekend_report(reference=None):
+    friday, sunday = weekend_bounds(reference)
+    submissions = (
+        Submission.query.filter(Submission.event_date >= friday, Submission.event_date <= sunday)
+        .order_by(Submission.event_date.desc(), Submission.event_name.asc(), Submission.submitted_at.asc())
+        .all()
+    )
+
+    events = []
+    events_by_key = {}
+    totals = {"misplaced": 0, "missing": 0, "broken": 0}
+    for s in submissions:
+        misplaced = json.loads(s.misplaced_items)
+        missing = json.loads(s.missing_items)
+        broken = json.loads(s.broken_items)
+        totals["misplaced"] += len(misplaced)
+        totals["missing"] += len(missing)
+        totals["broken"] += len(broken)
+
+        key = (s.event_name, s.event_date)
+        if key not in events_by_key:
+            events_by_key[key] = {"event_name": s.event_name, "event_date": s.event_date, "submissions": []}
+            events.append(events_by_key[key])
+        events_by_key[key]["submissions"].append(
+            {
+                "tech_name": s.tech_name,
+                "misplaced_items": misplaced,
+                "missing_items": missing,
+                "broken_items": broken,
+                "notes": s.notes,
+            }
+        )
+
+    return friday, sunday, events, totals, len(submissions)
+
+
+@app.route("/admin/report/weekend")
+@admin_required
+def admin_report_weekend():
+    friday, sunday, events, totals, submission_count = build_weekend_report()
+    return render_template(
+        "report_weekend.html",
+        friday=friday,
+        sunday=sunday,
+        events=events,
+        totals=totals,
+        submission_count=submission_count,
+    )
+
+
 @app.route("/api/report")
 def api_report():
     token = request.args.get("token", "")

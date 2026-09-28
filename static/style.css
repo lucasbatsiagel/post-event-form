@@ -38,6 +38,8 @@ header.topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  row-gap: 6px;
   gap: 12px;
 }
 
@@ -66,12 +68,20 @@ header.topbar {
   padding-left: 10px;
 }
 
+@media (max-width: 380px) {
+  .brand-tagline { display: none; }
+}
+
 .topbar-nav {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   font-size: 0.85rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
+
+.topbar-nav a { white-space: nowrap; }
 
 .topbar-nav a {
   color: #d3d2d6;
