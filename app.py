@@ -32,6 +32,15 @@ app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 app.config["SQLALCHEMY_DATABASE_URI"] = _normalized_db_url()
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+# Neon (and similar serverless Postgres) suspends its compute after a period
+# of inactivity; the next connection from the pool may already be dead.
+# pool_pre_ping tests each connection before use and transparently
+# reconnects instead of raising, and pool_recycle avoids handing out
+# connections the server may have already dropped.
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_pre_ping": True,
+    "pool_recycle": 280,
+}
 
 ADMIN_PIN = os.environ.get("ADMIN_PIN", "1234")
 REPORT_TOKEN = os.environ.get("REPORT_TOKEN", "")
@@ -128,10 +137,13 @@ def submit():
         broken_items=json.dumps(broken),
         notes=notes,
     )
+    event_name = event.name
+    event_date = event.event_date
+
     db.session.add(submission)
     db.session.commit()
 
-    return render_template("thanks.html", event=event, tech_name=tech_name)
+    return render_template("thanks.html", event_name=event_name, event_date=event_date, tech_name=tech_name)
 
 
 @app.route("/admin/login", methods=["GET", "POST"])
