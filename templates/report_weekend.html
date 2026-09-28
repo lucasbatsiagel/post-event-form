@@ -1,15 +1,21 @@
 {% extends "base.html" %}
 {% block title %}Weekend Report{% endblock %}
-{% block nav %}<a href="{{ url_for('admin_events') }}">Events</a> &nbsp;|&nbsp; <a href="{{ url_for('admin_report') }}">Full report</a> &nbsp;|&nbsp; <a href="{{ url_for('admin_logout') }}">Log out</a>{% endblock %}
+{% block nav %}<a href="{{ url_for('admin_report_weekend_archive') }}">Archive</a> &nbsp;|&nbsp; <a href="{{ url_for('admin_events') }}">Events</a> &nbsp;|&nbsp; <a href="{{ url_for('admin_report') }}">Full report</a> &nbsp;|&nbsp; <a href="{{ url_for('admin_logout') }}">Log out</a>{% endblock %}
 
 {% block content %}
 <div class="card">
+  <div class="no-print" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+    <a href="{{ url_for('admin_report_weekend', friday=prev_friday.isoformat()) }}" class="back-link" style="margin:0;">&larr; Prev weekend</a>
+    {% if not is_current %}<a href="{{ url_for('admin_report_weekend') }}" class="back-link" style="margin:0;">This weekend</a>{% endif %}
+    {% if not is_future %}<a href="{{ url_for('admin_report_weekend', friday=next_friday.isoformat()) }}" class="back-link" style="margin:0;">Next weekend &rarr;</a>{% endif %}
+  </div>
+
   <h2>Weekend Return Report</h2>
   <p class="subtitle">{{ friday.strftime('%A, %B %-d') }} &ndash; {{ sunday.strftime('%A, %B %-d, %Y') }}</p>
 
   <div class="no-print" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px;">
     <button type="button" class="btn btn-secondary btn-small" onclick="window.print()">Print</button>
-    <a href="{{ url_for('admin_report_weekend_download') }}" class="btn btn-secondary btn-small">Download (.docx)</a>
+    <a href="{{ url_for('admin_report_weekend_download', friday=friday.isoformat()) }}" class="btn btn-secondary btn-small">Download (.docx)</a>
   </div>
 
   <span class="section-label" style="margin-top:0;">Summary</span>

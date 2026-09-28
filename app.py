@@ -227,15 +227,19 @@ def admin_report():
     return render_template("report.html", rows=rows, days=days)
 
 
-def weekend_bounds(reference=None):
-    """Return (friday, sunday) for the weekend most relevant to `reference`:
-    the current weekend if today is Fri/Sat/Sun, otherwise the last one."""
-    ref = reference or date.today()
-    weekday = ref.weekday()  # Monday=0 ... Sunday=6
+def _friday_for_date(d):
+    """The Friday that starts the Fri-Sun weekend containing (or, for a
+    Mon-Thu date, most recently preceding) `d`."""
+    weekday = d.weekday()  # Monday=0 ... Sunday=6
     if weekday >= 4:
-        friday = ref - timedelta(days=weekday - 4)
-    else:
-        friday = ref - timedelta(days=weekday + 3)
+        return d - timedelta(days=weekday - 4)
+    return d - timedelta(days=weekday + 3)
+
+
+def current_weekend_bounds():
+    """(friday, sunday) for the weekend most relevant to today: the current
+    weekend if today is Fri/Sat/Sun, otherwise the last one."""
+    friday = _friday_for_date(date.today())
     return friday, friday + timedelta(days=2)
 
 
@@ -266,11 +270,13 @@ def _item_list(items):
     return parts
 
 
-def build_weekend_report(reference=None):
-    """Synthesize the weekend's submissions into a narrative summary, with
-    all submissions for the same event compiled into a single entry, rather
-    than one row per person who submitted."""
-    friday, sunday = weekend_bounds(reference)
+def build_weekend_report(friday=None, sunday=None):
+    """Synthesize the given weekend's submissions into a narrative summary,
+    with all submissions for the same event compiled into a single entry,
+    rather than one row per person who submitted. Defaults to the current
+    (or most recently completed) weekend."""
+    if friday is None or sunday is None:
+        friday, sunday = current_weekend_bounds()
     submissions = (
         Submission.query.filter(Submission.event_date >= friday, Submission.event_date <= sunday)
         .order_by(Submission.event_date.asc(), Submission.event_name.asc(), Submission.submitted_at.asc())
@@ -484,10 +490,25 @@ def build_weekend_docx(friday, sunday, stats, narrative, highlights):
     return buf
 
 
+def _requested_weekend():
+    """Parse ?friday=YYYY-MM-DD from the query string; falls back to the
+    current weekend for a missing or invalid value."""
+    raw = request.args.get("friday", "")
+    if raw:
+        try:
+            friday = datetime.strptime(raw, "%Y-%m-%d").date()
+            return friday, friday + timedelta(days=2)
+        except ValueError:
+            pass
+    return current_weekend_bounds()
+
+
 @app.route("/admin/report/weekend")
 @admin_required
 def admin_report_weekend():
-    friday, sunday, stats, narrative, highlights = build_weekend_report()
+    friday, sunday = _requested_weekend()
+    friday, sunday, stats, narrative, highlights = build_weekend_report(friday, sunday)
+    current_friday, _ = current_weekend_bounds()
     return render_template(
         "report_weekend.html",
         friday=friday,
@@ -495,13 +516,33 @@ def admin_report_weekend():
         stats=stats,
         narrative=narrative,
         highlights=highlights,
+        prev_friday=friday - timedelta(days=7),
+        next_friday=friday + timedelta(days=7),
+        is_current=(friday == current_friday),
+        is_future=(friday > current_friday),
     )
+
+
+@app.route("/admin/report/weekend/archive")
+@admin_required
+def admin_report_weekend_archive():
+    event_dates = [row[0] for row in db.session.query(Submission.event_date).distinct().all()]
+    fridays = sorted({_friday_for_date(d) for d in event_dates}, reverse=True)
+
+    weeks = []
+    for friday in fridays:
+        sunday = friday + timedelta(days=2)
+        _, _, stats, _, _ = build_weekend_report(friday, sunday)
+        weeks.append({"friday": friday, "sunday": sunday, "stats": stats})
+
+    return render_template("report_weekend_archive.html", weeks=weeks)
 
 
 @app.route("/admin/report/weekend/download")
 @admin_required
 def admin_report_weekend_download():
-    friday, sunday, stats, narrative, highlights = build_weekend_report()
+    friday, sunday = _requested_weekend()
+    friday, sunday, stats, narrative, highlights = build_weekend_report(friday, sunday)
     buf = build_weekend_docx(friday, sunday, stats, narrative, highlights)
     filename = f"weekend-report-{friday.isoformat()}-to-{sunday.isoformat()}.docx"
     return send_file(

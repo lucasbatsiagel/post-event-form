@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Weekend Report Archive{% endblock %}
+{% block nav %}<a href="{{ url_for('admin_report_weekend') }}">This weekend</a> &nbsp;|&nbsp; <a href="{{ url_for('admin_events') }}">Events</a> &nbsp;|&nbsp; <a href="{{ url_for('admin_logout') }}">Log out</a>{% endblock %}
+
+{% block content %}
+<div class="card">
+  <h2>Weekend Report Archive</h2>
+  <p class="subtitle">Every weekend that has at least one submission, most recent first.</p>
+</div>
+
+{% if weeks %}
+  {% for w in weeks %}
+    <a class="event-tile" style="display:block; text-align:left; padding:16px 18px; margin-bottom:12px;" href="{{ url_for('admin_report_weekend', friday=w.friday.isoformat()) }}">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+        <div style="font-weight:700;">{{ w.friday.strftime('%b %-d') }} &ndash; {{ w.sunday.strftime('%b %-d, %Y') }}</div>
+        <div>
+          <span class="pill pill-active">{{ w.stats.events }} event{{ 's' if w.stats.events != 1 else '' }}</span>
+          {% if w.stats.missing or w.stats.broken or w.stats.misplaced %}
+            <span class="tag tag-broken">{{ w.stats.missing + w.stats.broken + w.stats.misplaced }} flagged</span>
+          {% else %}
+            <span class="pill pill-active">All clean</span>
+          {% endif %}
+        </div>
+      </div>
+    </a>
+  {% endfor %}
+{% else %}
+  <div class="card"><div class="empty-state">No submissions yet.</div></div>
+{% endif %}
+{% endblock %}

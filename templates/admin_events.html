@@ -8,7 +8,10 @@
     <h3 style="margin-bottom:2px;">Weekend report</h3>
     <div class="event-meta">A concise summary of this weekend's submissions.</div>
   </div>
-  <a href="{{ url_for('admin_report_weekend') }}" class="btn btn-small">View report</a>
+  <div style="display:flex; gap:8px; flex-wrap:wrap;">
+    <a href="{{ url_for('admin_report_weekend_archive') }}" class="btn btn-secondary btn-small">Archive</a>
+    <a href="{{ url_for('admin_report_weekend') }}" class="btn btn-small">View report</a>
+  </div>
 </div>
 
 <div class="card">
