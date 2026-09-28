@@ -8,7 +8,7 @@ from functools import wraps
 import qrcode
 import qrcode.image.svg
 from dotenv import load_dotenv
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, abort, Response
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, abort, Response, make_response
 
 from models import db, Event, Submission
 
@@ -229,53 +229,86 @@ def weekend_bounds(reference=None):
 
 
 def build_weekend_report(reference=None):
+    """A summary of the weekend's submissions, grouped by outcome (missing /
+    broken / misplaced / clean) rather than walked submission-by-submission,
+    so it reads as a scannable action list instead of a full transcript."""
     friday, sunday = weekend_bounds(reference)
     submissions = (
         Submission.query.filter(Submission.event_date >= friday, Submission.event_date <= sunday)
-        .order_by(Submission.event_date.desc(), Submission.event_name.asc(), Submission.submitted_at.asc())
+        .order_by(Submission.event_date.asc(), Submission.event_name.asc(), Submission.submitted_at.asc())
         .all()
     )
 
-    events = []
-    events_by_key = {}
-    totals = {"misplaced": 0, "missing": 0, "broken": 0}
+    missing, broken, misplaced, clean, noted = [], [], [], [], []
+    events_seen = set()
+
     for s in submissions:
-        misplaced = json.loads(s.misplaced_items)
-        missing = json.loads(s.missing_items)
-        broken = json.loads(s.broken_items)
-        totals["misplaced"] += len(misplaced)
-        totals["missing"] += len(missing)
-        totals["broken"] += len(broken)
+        events_seen.add((s.event_name, s.event_date))
+        m_items = json.loads(s.missing_items)
+        b_items = json.loads(s.broken_items)
+        p_items = json.loads(s.misplaced_items)
 
-        key = (s.event_name, s.event_date)
-        if key not in events_by_key:
-            events_by_key[key] = {"event_name": s.event_name, "event_date": s.event_date, "submissions": []}
-            events.append(events_by_key[key])
-        events_by_key[key]["submissions"].append(
-            {
-                "tech_name": s.tech_name,
-                "misplaced_items": misplaced,
-                "missing_items": missing,
-                "broken_items": broken,
-                "notes": s.notes,
-            }
-        )
+        for i in m_items:
+            missing.append({**i, "event_name": s.event_name, "tech_name": s.tech_name})
+        for i in b_items:
+            broken.append({**i, "event_name": s.event_name, "tech_name": s.tech_name})
+        for i in p_items:
+            misplaced.append({**i, "event_name": s.event_name, "tech_name": s.tech_name})
 
-    return friday, sunday, events, totals, len(submissions)
+        if s.notes:
+            noted.append({"event_name": s.event_name, "tech_name": s.tech_name, "notes": s.notes})
+
+        if not (m_items or b_items or p_items):
+            clean.append({"event_name": s.event_name, "tech_name": s.tech_name})
+
+    stats = {
+        "events": len(events_seen),
+        "submissions": len(submissions),
+        "missing": len(missing),
+        "broken": len(broken),
+        "misplaced": len(misplaced),
+    }
+    return friday, sunday, stats, missing, broken, misplaced, clean, noted
 
 
 @app.route("/admin/report/weekend")
 @admin_required
 def admin_report_weekend():
-    friday, sunday, events, totals, submission_count = build_weekend_report()
+    friday, sunday, stats, missing, broken, misplaced, clean, noted = build_weekend_report()
     return render_template(
         "report_weekend.html",
         friday=friday,
         sunday=sunday,
-        events=events,
-        totals=totals,
-        submission_count=submission_count,
+        stats=stats,
+        missing=missing,
+        broken=broken,
+        misplaced=misplaced,
+        clean=clean,
+        noted=noted,
     )
+
+
+@app.route("/admin/report/weekend/download")
+@admin_required
+def admin_report_weekend_download():
+    friday, sunday, stats, missing, broken, misplaced, clean, noted = build_weekend_report()
+    html = render_template(
+        "report_weekend_download.html",
+        friday=friday,
+        sunday=sunday,
+        stats=stats,
+        missing=missing,
+        broken=broken,
+        misplaced=misplaced,
+        clean=clean,
+        noted=noted,
+    )
+    response = make_response(html)
+    response.headers["Content-Type"] = "text/html; charset=utf-8"
+    response.headers["Content-Disposition"] = (
+        f'attachment; filename="weekend-report-{friday.isoformat()}-to-{sunday.isoformat()}.html"'
+    )
+    return response
 
 
 @app.route("/api/report")

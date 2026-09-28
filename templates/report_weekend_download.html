@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>Weekend Return Report</title></head>
+<body style="margin:0; padding:0; background:#f5f6f8; font-family:-apple-system,Helvetica,Arial,sans-serif; color:#1b2430;">
+<div style="max-width:640px; margin:0 auto; padding:20px 16px;">
+  <h1 style="font-size:1.25rem; margin:0 0 4px;">Weekend Return Report</h1>
+  <p style="color:#58565a; font-size:0.9rem; margin:0 0 16px;">{{ friday.strftime('%A, %B %-d') }} &ndash; {{ sunday.strftime('%A, %B %-d, %Y') }}</p>
+
+  <p style="color:#58565a; font-size:0.85rem; margin:0 0 20px;">
+    {{ stats.events }} event{{ 's' if stats.events != 1 else '' }} &middot;
+    {{ stats.submissions }} submission{{ 's' if stats.submissions != 1 else '' }} &middot;
+    {{ stats.missing }} missing &middot; {{ stats.broken }} broken &middot; {{ stats.misplaced }} misplaced
+  </p>
+
+  {% if stats.submissions %}
+    {% if missing %}
+    <div style="background:#fff; border:1px solid #dde1e7; border-radius:10px; padding:16px; margin-bottom:14px;">
+      <h2 style="font-size:1rem; margin:0 0 10px;">Missing</h2>
+      {% for i in missing %}
+        <p style="margin:0 0 8px;"><strong>{{ i.item }}</strong> &mdash; {{ i.event_name }} &middot; {{ i.tech_name }}{% if i.detail %} &mdash; {{ i.detail }}{% endif %}</p>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if broken %}
+    <div style="background:#fff; border:1px solid #dde1e7; border-radius:10px; padding:16px; margin-bottom:14px;">
+      <h2 style="font-size:1rem; margin:0 0 10px;">Broken / damaged</h2>
+      {% for i in broken %}
+        <p style="margin:0 0 8px;"><strong>{{ i.item }}</strong> &mdash; {{ i.event_name }} &middot; {{ i.tech_name }}{% if i.detail %} &mdash; {{ i.detail }}{% endif %}</p>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if misplaced %}
+    <div style="background:#fff; border:1px solid #dde1e7; border-radius:10px; padding:16px; margin-bottom:14px;">
+      <h2 style="font-size:1rem; margin:0 0 10px;">Misplaced</h2>
+      {% for i in misplaced %}
+        <p style="margin:0 0 8px;"><strong>{{ i.item }}</strong> &mdash; {{ i.event_name }} &middot; {{ i.tech_name }}{% if i.detail %} &mdash; should be in {{ i.detail }}{% endif %}</p>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if noted %}
+    <div style="background:#fff; border:1px solid #dde1e7; border-radius:10px; padding:16px; margin-bottom:14px;">
+      <h2 style="font-size:1rem; margin:0 0 10px;">Notes from techs</h2>
+      {% for n in noted %}
+        <p style="margin:0 0 8px;"><strong>{{ n.event_name }} ({{ n.tech_name }}):</strong> {{ n.notes }}</p>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if clean %}
+    <div style="background:#fff; border:1px solid #dde1e7; border-radius:10px; padding:16px; margin-bottom:14px;">
+      <h2 style="font-size:1rem; margin:0 0 10px;">Clean returns</h2>
+      <p style="margin:0; color:#58565a;">
+        {% for c in clean %}{{ c.tech_name }} ({{ c.event_name }}){% if not loop.last %}, {% endif %}{% endfor %}
+      </p>
+    </div>
+    {% endif %}
+  {% else %}
+    <p style="color:#58565a;">No submissions for this weekend.</p>
+  {% endif %}
+</div>
+</body>
+</html>

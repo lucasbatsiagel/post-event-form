@@ -6,57 +6,78 @@
 <div class="card">
   <h2>Weekend Return Report</h2>
   <p class="subtitle">{{ friday.strftime('%A, %B %-d') }} &ndash; {{ sunday.strftime('%A, %B %-d, %Y') }}</p>
-  <div>
-    <span class="pill pill-active">{{ events|length }} event{{ 's' if events|length != 1 else '' }}</span>
-    <span class="pill pill-inactive">{{ submission_count }} submission{{ 's' if submission_count != 1 else '' }}</span>
-    {% if totals.misplaced %}<span class="tag tag-misplaced">{{ totals.misplaced }} misplaced</span>{% endif %}
-    {% if totals.missing %}<span class="tag tag-missing">{{ totals.missing }} missing</span>{% endif %}
-    {% if totals.broken %}<span class="tag tag-broken">{{ totals.broken }} broken</span>{% endif %}
-    {% if not (totals.misplaced or totals.missing or totals.broken) and submission_count %}
+
+  <div style="margin-bottom: 16px;">
+    <span class="pill pill-active">{{ stats.events }} event{{ 's' if stats.events != 1 else '' }}</span>
+    <span class="pill pill-inactive">{{ stats.submissions }} submission{{ 's' if stats.submissions != 1 else '' }}</span>
+    {% if stats.missing %}<span class="tag tag-missing">{{ stats.missing }} missing</span>{% endif %}
+    {% if stats.broken %}<span class="tag tag-broken">{{ stats.broken }} broken</span>{% endif %}
+    {% if stats.misplaced %}<span class="tag tag-misplaced">{{ stats.misplaced }} misplaced</span>{% endif %}
+    {% if not (stats.missing or stats.broken or stats.misplaced) and stats.submissions %}
       <span class="pill pill-active">All clean</span>
     {% endif %}
   </div>
+
+  <div class="no-print" style="display:flex; gap:8px; flex-wrap:wrap;">
+    <button type="button" class="btn btn-secondary btn-small" onclick="window.print()">Print</button>
+    <a href="{{ url_for('admin_report_weekend_download') }}" class="btn btn-secondary btn-small">Download</a>
+  </div>
 </div>
 
-{% if events %}
-  {% for event in events %}
+{% if stats.submissions %}
+  {% if missing %}
   <div class="card">
-    <h3 style="margin-bottom:2px;">{{ event.event_name }}</h3>
-    <div class="event-meta" style="margin-bottom:4px;">{{ event.event_date.strftime('%A, %-m/%-d/%Y') }}</div>
-
-    {% for s in event.submissions %}
-      <div style="{% if not loop.first %}margin-top:14px; padding-top:14px; border-top:1px solid var(--line);{% endif %}">
-        <div class="event-meta" style="font-weight:700; color:var(--ink);">Reported by {{ s.tech_name }}</div>
-
-        {% if s.misplaced_items %}
-          <div style="margin-top:6px;">
-            {% for i in s.misplaced_items %}<span class="tag tag-misplaced">{{ i.item }}{% if i.detail %} &rarr; {{ i.detail }}{% endif %}</span>{% endfor %}
-          </div>
-        {% endif %}
-
-        {% if s.missing_items %}
-          <div style="margin-top:6px;">
-            {% for i in s.missing_items %}<span class="tag tag-missing">{{ i.item }}{% if i.detail %} &mdash; {{ i.detail }}{% endif %}</span>{% endfor %}
-          </div>
-        {% endif %}
-
-        {% if s.broken_items %}
-          <div style="margin-top:6px;">
-            {% for i in s.broken_items %}<span class="tag tag-broken">{{ i.item }}{% if i.detail %} &mdash; {{ i.detail }}{% endif %}</span>{% endfor %}
-          </div>
-        {% endif %}
-
-        {% if s.notes %}
-          <p style="margin:8px 0 0;">{{ s.notes }}</p>
-        {% endif %}
-
-        {% if not (s.misplaced_items or s.missing_items or s.broken_items or s.notes) %}
-          <p class="event-meta" style="margin-top:6px;">Nothing flagged &mdash; clean return.</p>
-        {% endif %}
+    <h3>Missing</h3>
+    {% for i in missing %}
+      <div class="summary-row">
+        <span class="tag tag-missing">{{ i.item }}</span>
+        <span class="event-meta">{{ i.event_name }} &middot; {{ i.tech_name }}{% if i.detail %} &mdash; {{ i.detail }}{% endif %}</span>
       </div>
     {% endfor %}
   </div>
-  {% endfor %}
+  {% endif %}
+
+  {% if broken %}
+  <div class="card">
+    <h3>Broken / damaged</h3>
+    {% for i in broken %}
+      <div class="summary-row">
+        <span class="tag tag-broken">{{ i.item }}</span>
+        <span class="event-meta">{{ i.event_name }} &middot; {{ i.tech_name }}{% if i.detail %} &mdash; {{ i.detail }}{% endif %}</span>
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if misplaced %}
+  <div class="card">
+    <h3>Misplaced</h3>
+    {% for i in misplaced %}
+      <div class="summary-row">
+        <span class="tag tag-misplaced">{{ i.item }}</span>
+        <span class="event-meta">{{ i.event_name }} &middot; {{ i.tech_name }}{% if i.detail %} &mdash; should be in {{ i.detail }}{% endif %}</span>
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if noted %}
+  <div class="card">
+    <h3>Notes from techs</h3>
+    {% for n in noted %}
+      <p style="margin:0 0 10px;"><strong>{{ n.event_name }} ({{ n.tech_name }}):</strong> {{ n.notes }}</p>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if clean %}
+  <div class="card">
+    <h3>Clean returns</h3>
+    <p class="event-meta" style="margin:0;">
+      {% for c in clean %}{{ c.tech_name }} ({{ c.event_name }}){% if not loop.last %}, {% endif %}{% endfor %}
+    </p>
+  </div>
+  {% endif %}
 {% else %}
   <div class="card"><div class="empty-state">No submissions for this weekend yet.</div></div>
 {% endif %}

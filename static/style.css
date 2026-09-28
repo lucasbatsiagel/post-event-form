@@ -254,6 +254,15 @@ th { color: var(--ink-soft); font-size: 0.75rem; text-transform: uppercase; lett
 .tag-broken { background: #fbe4e1; color: var(--bad); }
 .tag-misplaced { background: #fff3d6; color: #8a6300; }
 
+.summary-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.summary-row:last-child { margin-bottom: 0; }
+
 .empty-state {
   color: var(--ink-soft);
   font-size: 0.9rem;
@@ -379,3 +388,15 @@ th { color: var(--ink-soft); font-size: 0.75rem; text-transform: uppercase; lett
 .event-row:last-child { border-bottom: none; }
 .event-meta { font-size: 0.85rem; color: var(--ink-soft); }
 .event-actions { display: flex; gap: 6px; }
+
+@media print {
+  header.topbar, .no-print { display: none !important; }
+  body { background: #fff; }
+  main { padding: 0; max-width: 100%; }
+  .card {
+    box-shadow: none;
+    border: 1px solid #ddd;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
