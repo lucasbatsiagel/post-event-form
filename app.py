@@ -313,7 +313,7 @@ def build_weekend_report(reference=None):
 
     for ev in events:
         issue_count = len(ev["missing"]) + len(ev["broken"]) + len(ev["misplaced"])
-        if issue_count == 0:
+        if issue_count == 0 and not ev["notes"]:
             clean_events += 1
             continue
 
@@ -455,6 +455,12 @@ def build_weekend_docx(friday, sunday, stats, narrative, highlights):
 
             for line in h["lines"]:
                 doc.add_paragraph(line, style="List Bullet")
+
+            if not h["lines"] and h["notes"]:
+                no_items_p = doc.add_paragraph()
+                no_items_run = no_items_p.add_run("No items flagged — feedback below.")
+                no_items_run.font.color.rgb = BRAND_GRAY
+                no_items_run.font.size = Pt(9)
 
             for note in h["notes"]:
                 note_p = doc.add_paragraph()

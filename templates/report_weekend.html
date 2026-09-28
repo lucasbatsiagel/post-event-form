@@ -47,6 +47,7 @@
     <div style="{% if not loop.first %}margin-top:14px; padding-top:14px; border-top:1px solid var(--line);{% endif %}">
       <div style="font-weight:700;">{{ h.event_name }} <span class="event-meta" style="font-weight:400;">&middot; {{ h.event_date.strftime('%-m/%-d/%Y') }}</span></div>
       {% for line in h.lines %}<p style="margin:4px 0 0;">{{ line }}</p>{% endfor %}
+      {% if not h.lines and h.notes %}<p style="margin:4px 0 0;" class="event-meta">No items flagged &mdash; feedback below.</p>{% endif %}
       {% for note in h.notes %}<p style="margin:4px 0 0; font-style:italic; color:var(--ink-soft);">&ldquo;{{ note }}&rdquo;</p>{% endfor %}
     </div>
   {% endfor %}
