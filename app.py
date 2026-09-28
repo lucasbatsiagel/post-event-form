@@ -1,4 +1,3 @@
-import base64
 import io
 import json
 import os
@@ -8,8 +7,12 @@ from functools import wraps
 
 import qrcode
 import qrcode.image.svg
+from docx import Document
+from docx.enum.table import WD_TABLE_ALIGNMENT
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.shared import Inches, Pt, RGBColor
 from dotenv import load_dotenv
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, abort, Response, make_response
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, abort, Response, send_file
 
 from models import db, Event, Submission
 
@@ -39,13 +42,11 @@ with app.app_context():
     db.create_all()
 
 
-def _logo_data_uri():
-    path = os.path.join(app.root_path, "static", "img", "siagel-logo.png")
-    with open(path, "rb") as f:
-        return "data:image/png;base64," + base64.b64encode(f.read()).decode("ascii")
+LOGO_PATH = os.path.join(app.root_path, "static", "img", "siagel-logo.png")
 
-
-LOGO_DATA_URI = _logo_data_uri()
+BRAND_RED = RGBColor(0xD3, 0x1F, 0x2B)
+BRAND_INK = RGBColor(0x18, 0x18, 0x18)
+BRAND_GRAY = RGBColor(0x58, 0x56, 0x5A)
 
 
 def admin_required(view):
@@ -238,23 +239,37 @@ def weekend_bounds(reference=None):
     return friday, friday + timedelta(days=2)
 
 
-def _item_phrase(items, verb):
-    """['Fog Machine'] + 'missing' -> 'Fog Machine missing'
-    ['A', 'B', 'C'] + 'damaged' -> 'A, B, and C damaged'"""
-    names = [i["item"] for i in items]
-    if len(names) == 1:
-        joined = names[0]
-    elif len(names) == 2:
-        joined = f"{names[0]} and {names[1]}"
-    else:
-        joined = ", ".join(names[:-1]) + f", and {names[-1]}"
-    return f"{joined} {verb}"
+def _item_list(items):
+    """Compile possibly-repeated item dicts (from multiple submissions on the
+    same event) into one readable, deduped list: 'Wireless Mic (x2) — left
+    at venue, Truss Clamp'."""
+    counts = {}
+    details = {}
+    order = []
+    for i in items:
+        name = i["item"]
+        if name not in counts:
+            counts[name] = 0
+            details[name] = []
+            order.append(name)
+        counts[name] += 1
+        detail = (i.get("detail") or "").strip()
+        if detail and detail not in details[name]:
+            details[name].append(detail)
+
+    parts = []
+    for name in order:
+        label = name if counts[name] == 1 else f"{name} (x{counts[name]})"
+        if details[name]:
+            label += " — " + "; ".join(details[name])
+        parts.append(label)
+    return parts
 
 
 def build_weekend_report(reference=None):
-    """Synthesize the weekend's submissions into a narrative summary (an
-    executive-summary paragraph plus short per-crew highlights) instead of
-    a raw item-by-item transcript."""
+    """Synthesize the weekend's submissions into a narrative summary, with
+    all submissions for the same event compiled into a single entry, rather
+    than one row per person who submitted."""
     friday, sunday = weekend_bounds(reference)
     submissions = (
         Submission.query.filter(Submission.event_date >= friday, Submission.event_date <= sunday)
@@ -262,60 +277,81 @@ def build_weekend_report(reference=None):
         .all()
     )
 
-    highlights = []
-    events_seen = set()
-    clean_count = 0
+    events = []
+    events_by_key = {}
     totals = {"missing": 0, "broken": 0, "misplaced": 0}
-    event_issue_counts = {}
 
     for s in submissions:
-        events_seen.add((s.event_name, s.event_date))
+        key = (s.event_name, s.event_date)
+        if key not in events_by_key:
+            events_by_key[key] = {
+                "event_name": s.event_name,
+                "event_date": s.event_date,
+                "missing": [],
+                "broken": [],
+                "misplaced": [],
+                "notes": [],
+            }
+            events.append(events_by_key[key])
+        ev = events_by_key[key]
+
         m_items = json.loads(s.missing_items)
         b_items = json.loads(s.broken_items)
         p_items = json.loads(s.misplaced_items)
+        ev["missing"].extend(m_items)
+        ev["broken"].extend(b_items)
+        ev["misplaced"].extend(p_items)
         totals["missing"] += len(m_items)
         totals["broken"] += len(b_items)
         totals["misplaced"] += len(p_items)
+        if s.notes and s.notes not in ev["notes"]:
+            ev["notes"].append(s.notes)
 
-        if not (m_items or b_items or p_items):
-            clean_count += 1
+    highlights = []
+    clean_events = 0
+    event_issue_counts = {}
+
+    for ev in events:
+        issue_count = len(ev["missing"]) + len(ev["broken"]) + len(ev["misplaced"])
+        if issue_count == 0:
+            clean_events += 1
             continue
 
-        phrases = []
-        if m_items:
-            phrases.append(_item_phrase(m_items, "missing"))
-        if b_items:
-            phrases.append(_item_phrase(b_items, "damaged"))
-        if p_items:
-            phrases.append(_item_phrase(p_items, "misplaced"))
+        lines = []
+        if ev["missing"]:
+            lines.append("Missing: " + ", ".join(_item_list(ev["missing"])))
+        if ev["broken"]:
+            lines.append("Broken/damaged: " + ", ".join(_item_list(ev["broken"])))
+        if ev["misplaced"]:
+            lines.append("Misplaced: " + ", ".join(_item_list(ev["misplaced"])))
 
         highlights.append(
             {
-                "tech_name": s.tech_name,
-                "event_name": s.event_name,
-                "summary": "; ".join(phrases),
-                "notes": s.notes,
+                "event_name": ev["event_name"],
+                "event_date": ev["event_date"],
+                "lines": lines,
+                "notes": ev["notes"],
             }
         )
-        event_issue_counts[s.event_name] = event_issue_counts.get(s.event_name, 0) + len(m_items) + len(b_items) + len(p_items)
+        event_issue_counts[ev["event_name"]] = issue_count
 
     stats = {
-        "events": len(events_seen),
-        "submissions": len(submissions),
+        "events": len(events),
+        "clean_events": clean_events,
         "missing": totals["missing"],
         "broken": totals["broken"],
         "misplaced": totals["misplaced"],
     }
 
-    narrative = build_weekend_narrative(friday, sunday, stats, clean_count, event_issue_counts)
+    narrative = build_weekend_narrative(friday, sunday, stats, event_issue_counts)
 
-    return friday, sunday, stats, narrative, highlights, clean_count
+    return friday, sunday, stats, narrative, highlights
 
 
-def build_weekend_narrative(friday, sunday, stats, clean_count, event_issue_counts):
+def build_weekend_narrative(friday, sunday, stats, event_issue_counts):
     date_range = f"{friday.strftime('%B %-d')}–{sunday.strftime('%-d, %Y')}"
 
-    if stats["submissions"] == 0:
+    if stats["events"] == 0:
         return f"No return reports were submitted for the weekend of {date_range}."
 
     total_flagged = stats["missing"] + stats["broken"] + stats["misplaced"]
@@ -329,11 +365,7 @@ def build_weekend_narrative(friday, sunday, stats, clean_count, event_issue_coun
     else:
         tone = "a rougher weekend than usual, with a notable number of items flagged"
 
-    sentence = (
-        f"Across {stats['events']} event{'s' if stats['events'] != 1 else ''} and "
-        f"{stats['submissions']} crew submission{'s' if stats['submissions'] != 1 else ''} "
-        f"over {date_range}, it was {tone}."
-    )
+    sentence = f"Across {stats['events']} event{'s' if stats['events'] != 1 else ''} over {date_range}, it was {tone}."
 
     if total_flagged:
         breakdown = []
@@ -353,19 +385,103 @@ def build_weekend_narrative(friday, sunday, stats, clean_count, event_issue_coun
         if len(event_issue_counts) > 1 or event_issue_counts[worst_event] > 1:
             sentence += f" {worst_event} accounted for the most flagged items."
 
-    if clean_count:
+    if stats["clean_events"]:
         sentence += (
-            f" {clean_count} of {stats['submissions']} crew{'s' if stats['submissions'] != 1 else ''} "
+            f" {stats['clean_events']} of {stats['events']} event{'s' if stats['events'] != 1 else ''} "
             f"reported a fully clean return."
         )
 
     return sentence
 
 
+def build_weekend_docx(friday, sunday, stats, narrative, highlights):
+    doc = Document()
+
+    normal = doc.styles["Normal"]
+    normal.font.name = "Calibri"
+    normal.font.size = Pt(11)
+    normal.font.color.rgb = BRAND_INK
+
+    logo_p = doc.add_paragraph()
+    logo_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    logo_p.add_run().add_picture(LOGO_PATH, width=Inches(2.2))
+
+    title = doc.add_heading("Weekend Return Report", level=1)
+    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    for run in title.runs:
+        run.font.color.rgb = BRAND_RED
+
+    subtitle = doc.add_paragraph()
+    subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    sub_run = subtitle.add_run(f"{friday.strftime('%A, %B %-d')} – {sunday.strftime('%A, %B %-d, %Y')}")
+    sub_run.italic = True
+    sub_run.font.color.rgb = BRAND_GRAY
+
+    doc.add_paragraph()
+
+    doc.add_heading("Executive Summary", level=2)
+    doc.add_paragraph(narrative)
+
+    table = doc.add_table(rows=2, cols=3)
+    table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    stat_values = [
+        (str(stats["events"]), "Events"),
+        (str(stats["clean_events"]), "Clean events"),
+        (str(stats["missing"] + stats["broken"] + stats["misplaced"]), "Items flagged"),
+    ]
+    for col, (num, label) in enumerate(stat_values):
+        num_p = table.cell(0, col).paragraphs[0]
+        num_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        num_run = num_p.add_run(num)
+        num_run.bold = True
+        num_run.font.size = Pt(22)
+        num_run.font.color.rgb = BRAND_RED
+
+        label_p = table.cell(1, col).paragraphs[0]
+        label_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        label_run = label_p.add_run(label)
+        label_run.font.size = Pt(9)
+        label_run.font.color.rgb = BRAND_GRAY
+
+    doc.add_paragraph()
+
+    doc.add_heading("Highlights", level=2)
+    if highlights:
+        for h in highlights:
+            event_p = doc.add_paragraph()
+            event_run = event_p.add_run(f"{h['event_name']} ({h['event_date'].strftime('%-m/%-d/%Y')})")
+            event_run.bold = True
+            event_run.font.size = Pt(13)
+
+            for line in h["lines"]:
+                doc.add_paragraph(line, style="List Bullet")
+
+            for note in h["notes"]:
+                note_p = doc.add_paragraph()
+                note_run = note_p.add_run(f"“{note}”")
+                note_run.italic = True
+                note_run.font.color.rgb = BRAND_GRAY
+    else:
+        doc.add_paragraph("Nothing flagged this weekend — every event reported a clean return.")
+
+    footer_p = doc.sections[0].footer.paragraphs[0]
+    footer_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    footer_run = footer_p.add_run(
+        f"Siagel Productions · Post-Event Report · Generated {datetime.utcnow().strftime('%-m/%-d/%Y %-I:%M %p')} UTC"
+    )
+    footer_run.font.size = Pt(8)
+    footer_run.font.color.rgb = BRAND_GRAY
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+    return buf
+
+
 @app.route("/admin/report/weekend")
 @admin_required
 def admin_report_weekend():
-    friday, sunday, stats, narrative, highlights, clean_count = build_weekend_report()
+    friday, sunday, stats, narrative, highlights = build_weekend_report()
     return render_template(
         "report_weekend.html",
         friday=friday,
@@ -373,31 +489,21 @@ def admin_report_weekend():
         stats=stats,
         narrative=narrative,
         highlights=highlights,
-        clean_count=clean_count,
     )
 
 
 @app.route("/admin/report/weekend/download")
 @admin_required
 def admin_report_weekend_download():
-    friday, sunday, stats, narrative, highlights, clean_count = build_weekend_report()
-    html = render_template(
-        "report_weekend_download.html",
-        friday=friday,
-        sunday=sunday,
-        stats=stats,
-        narrative=narrative,
-        highlights=highlights,
-        clean_count=clean_count,
-        logo_data_uri=LOGO_DATA_URI,
-        generated_at=datetime.utcnow(),
+    friday, sunday, stats, narrative, highlights = build_weekend_report()
+    buf = build_weekend_docx(friday, sunday, stats, narrative, highlights)
+    filename = f"weekend-report-{friday.isoformat()}-to-{sunday.isoformat()}.docx"
+    return send_file(
+        buf,
+        mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        as_attachment=True,
+        download_name=filename,
     )
-    response = make_response(html)
-    response.headers["Content-Type"] = "text/html; charset=utf-8"
-    response.headers["Content-Disposition"] = (
-        f'attachment; filename="weekend-report-{friday.isoformat()}-to-{sunday.isoformat()}.html"'
-    )
-    return response
 
 
 @app.route("/api/report")

@@ -9,7 +9,7 @@
 
   <div class="no-print" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px;">
     <button type="button" class="btn btn-secondary btn-small" onclick="window.print()">Print</button>
-    <a href="{{ url_for('admin_report_weekend_download') }}" class="btn btn-secondary btn-small">Download</a>
+    <a href="{{ url_for('admin_report_weekend_download') }}" class="btn btn-secondary btn-small">Download (.docx)</a>
   </div>
 
   <span class="section-label" style="margin-top:0;">Summary</span>
@@ -23,12 +23,12 @@
       <div class="event-meta">Event{{ 's' if stats.events != 1 else '' }}</div>
     </div>
     <div style="text-align:center;">
-      <div style="font-size:1.6rem; font-weight:800;">{{ stats.submissions }}</div>
-      <div class="event-meta">Submissions</div>
+      <div style="font-size:1.6rem; font-weight:800; color: {{ 'var(--good)' if not (stats.missing or stats.broken or stats.misplaced) else 'var(--ink)' }};">{{ stats.clean_events }}</div>
+      <div class="event-meta">Clean events</div>
     </div>
     <div style="text-align:center;">
-      <div style="font-size:1.6rem; font-weight:800; color: {{ 'var(--good)' if not (stats.missing or stats.broken or stats.misplaced) else 'var(--ink)' }};">{{ clean_count }}</div>
-      <div class="event-meta">Clean returns</div>
+      <div style="font-size:1.6rem; font-weight:800;">{{ stats.missing + stats.broken + stats.misplaced }}</div>
+      <div class="event-meta">Items flagged</div>
     </div>
   </div>
   {% if stats.missing or stats.broken or stats.misplaced %}
@@ -45,14 +45,15 @@
   <h3>Highlights</h3>
   {% for h in highlights %}
     <div style="{% if not loop.first %}margin-top:14px; padding-top:14px; border-top:1px solid var(--line);{% endif %}">
-      <div style="font-weight:700;">{{ h.tech_name }} &middot; {{ h.event_name }}</div>
-      <p style="margin:4px 0 0;">{{ h.summary }}.{% if h.notes %} {{ h.notes }}{% endif %}</p>
+      <div style="font-weight:700;">{{ h.event_name }} <span class="event-meta" style="font-weight:400;">&middot; {{ h.event_date.strftime('%-m/%-d/%Y') }}</span></div>
+      {% for line in h.lines %}<p style="margin:4px 0 0;">{{ line }}</p>{% endfor %}
+      {% for note in h.notes %}<p style="margin:4px 0 0; font-style:italic; color:var(--ink-soft);">&ldquo;{{ note }}&rdquo;</p>{% endfor %}
     </div>
   {% endfor %}
 </div>
-{% elif stats.submissions %}
+{% elif stats.events %}
 <div class="card">
-  <div class="empty-state">Nothing flagged this weekend &mdash; every crew reported a clean return.</div>
+  <div class="empty-state">Nothing flagged this weekend &mdash; every event reported a clean return.</div>
 </div>
 {% else %}
 <div class="card">
