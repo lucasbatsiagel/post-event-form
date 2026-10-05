@@ -9,6 +9,7 @@ class Event(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200), nullable=False)
     event_date = db.Column(db.Date, nullable=False, default=date.today)
+    venue = db.Column(db.String(200), nullable=True)
     active = db.Column(db.Boolean, nullable=False, default=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 

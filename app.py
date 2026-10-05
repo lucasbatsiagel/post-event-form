@@ -13,6 +13,7 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Inches, Pt, RGBColor
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, abort, Response, send_file
+from sqlalchemy import text
 
 from models import db, Event, Submission
 
@@ -49,6 +50,17 @@ db.init_app(app)
 
 with app.app_context():
     db.create_all()
+    # db.create_all() only creates tables that don't exist yet; it won't add
+    # new columns to a table that's already there. Patch those in by hand.
+    with db.engine.connect() as conn:
+        if db.engine.dialect.name == "postgresql":
+            conn.execute(text("ALTER TABLE event ADD COLUMN IF NOT EXISTS venue VARCHAR(200)"))
+            conn.commit()
+        else:
+            existing_cols = [row[1] for row in conn.execute(text("PRAGMA table_info(event)"))]
+            if "venue" not in existing_cols:
+                conn.execute(text("ALTER TABLE event ADD COLUMN venue VARCHAR(200)"))
+                conn.commit()
 
 
 LOGO_PATH = os.path.join(app.root_path, "static", "img", "siagel-logo.png")
@@ -164,12 +176,24 @@ def admin_logout():
     return redirect(url_for("admin_login"))
 
 
+def all_venues():
+    rows = (
+        db.session.query(Event.venue)
+        .filter(Event.venue.isnot(None), Event.venue != "")
+        .distinct()
+        .order_by(Event.venue.asc())
+        .all()
+    )
+    return [r[0] for r in rows]
+
+
 @app.route("/admin/events", methods=["GET", "POST"])
 @admin_required
 def admin_events():
     if request.method == "POST":
         name = request.form.get("name", "").strip()
         event_date_raw = request.form.get("event_date", "").strip()
+        venue = request.form.get("venue", "").strip()
         if not name or not event_date_raw:
             flash("Event name and date are required.", "error")
         else:
@@ -178,13 +202,26 @@ def admin_events():
             except ValueError:
                 flash("Invalid date.", "error")
                 return redirect(url_for("admin_events"))
-            db.session.add(Event(name=name, event_date=event_date))
+            db.session.add(Event(name=name, event_date=event_date, venue=venue or None))
             db.session.commit()
             flash(f'Added "{name}".', "success")
         return redirect(url_for("admin_events"))
 
     events = Event.query.order_by(Event.event_date.desc()).all()
-    return render_template("admin_events.html", events=events, today=date.today().isoformat())
+    return render_template(
+        "admin_events.html", events=events, today=date.today().isoformat(), all_venues=all_venues()
+    )
+
+
+@app.route("/admin/events/<int:event_id>/venue", methods=["POST"])
+@admin_required
+def set_event_venue(event_id):
+    event = Event.query.get_or_404(event_id)
+    venue = request.form.get("venue", "").strip()
+    event.venue = venue or None
+    db.session.commit()
+    flash(f'Venue {"set" if venue else "cleared"} for "{event.name}".', "success")
+    return redirect(url_for("admin_events"))
 
 
 @app.route("/admin/events/<int:event_id>/toggle", methods=["POST"])
@@ -563,6 +600,108 @@ def admin_report_weekend_download():
         as_attachment=True,
         download_name=filename,
     )
+
+
+VENUE_KEYWORDS = {
+    "Load-in/out": [
+        "load-in", "load in", "load-out", "load out", "loading dock", "dock",
+        "parking", "stairs", "elevator", "freight", "ramp",
+    ],
+    "Power": ["power", "outlet", "circuit", "breaker", "generator", "electrical"],
+    "Staff & coordination": [
+        "coordinator", "venue staff", "venue manager", "security", "point of contact",
+    ],
+    "Restrictions": [
+        "curfew", "haze", "fog ban", "no rigging", "rigging", "noise ordinance",
+        "permit", "fire marshal",
+    ],
+    "Space & amenities": [
+        "ballroom", "green room", "backstage", "wifi", "wi-fi", "cell service", "neighbor",
+    ],
+}
+
+
+def categorize_venue_note(text_value):
+    """Return the venue-feedback categories a free-text note touches on, by
+    keyword match. An empty list means the note doesn't look venue-related."""
+    lowered = text_value.lower()
+    return [category for category, keywords in VENUE_KEYWORDS.items() if any(k in lowered for k in keywords)]
+
+
+def build_venue_profiles():
+    """One profile per venue, built from any submission notes/item details
+    that mention it, grouped by event. Venues with events but no matching
+    feedback still show up, with an empty mention list."""
+    events = Event.query.filter(Event.venue.isnot(None), Event.venue != "").all()
+    events_by_venue = {}
+    for e in events:
+        events_by_venue.setdefault(e.venue, []).append(e)
+
+    profiles = []
+    for venue_name, venue_events in events_by_venue.items():
+        event_ids = [e.id for e in venue_events]
+        submissions = (
+            Submission.query.filter(Submission.event_id.in_(event_ids))
+            .order_by(Submission.event_date.desc(), Submission.submitted_at.desc())
+            .all()
+        )
+
+        mentions = []
+        for s in submissions:
+            candidates = []
+            if s.notes:
+                candidates.append(s.notes.strip())
+            for key in ("missing_items", "broken_items", "misplaced_items"):
+                for item in json.loads(getattr(s, key)):
+                    detail = (item.get("detail") or "").strip()
+                    if detail:
+                        candidates.append(f"{item['item']}: {detail}")
+
+            for text_value in candidates:
+                categories = categorize_venue_note(text_value)
+                if categories:
+                    mentions.append(
+                        {
+                            "text": text_value,
+                            "categories": categories,
+                            "event_name": s.event_name,
+                            "event_date": s.event_date,
+                            "tech_name": s.tech_name,
+                        }
+                    )
+
+        category_counts = {}
+        for m in mentions:
+            for c in m["categories"]:
+                category_counts[c] = category_counts.get(c, 0) + 1
+
+        profiles.append(
+            {
+                "venue": venue_name,
+                "event_count": len(venue_events),
+                "submission_count": len(submissions),
+                "mentions": mentions,
+                "category_counts": category_counts,
+            }
+        )
+
+    profiles.sort(key=lambda p: len(p["mentions"]), reverse=True)
+    return profiles
+
+
+@app.route("/admin/venues")
+@admin_required
+def venues():
+    return render_template("venues.html", profiles=build_venue_profiles())
+
+
+@app.route("/admin/venues/<path:venue_name>")
+@admin_required
+def venue_detail(venue_name):
+    profile = next((p for p in build_venue_profiles() if p["venue"] == venue_name), None)
+    if not profile:
+        abort(404)
+    return render_template("venue_detail.html", profile=profile)
 
 
 @app.route("/api/report")

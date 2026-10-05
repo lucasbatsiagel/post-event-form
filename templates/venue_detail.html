@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}{{ profile.venue }}{% endblock %}
+{% block nav %}<a href="{{ url_for('venues') }}">&larr; Venues</a> &nbsp;|&nbsp; <a href="{{ url_for('admin_logout') }}">Log out</a>{% endblock %}
+
+{% block content %}
+<div class="card">
+  <h2>{{ profile.venue }}</h2>
+  <p class="subtitle">{{ profile.event_count }} event{{ 's' if profile.event_count != 1 else '' }} &middot; {{ profile.submission_count }} submission{{ 's' if profile.submission_count != 1 else '' }}</p>
+
+  {% if profile.category_counts %}
+    <span class="section-label" style="margin-top:0;">What comes up</span>
+    <div>
+      {% for cat, count in profile.category_counts.items() %}
+        <span class="tag tag-misplaced">{{ cat }} &middot; {{ count }}</span>
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>
+
+{% if profile.mentions %}
+<div class="card">
+  <h3>Feedback</h3>
+  {% for m in profile.mentions %}
+    <div style="{% if not loop.first %}margin-top:14px; padding-top:14px; border-top:1px solid var(--line);{% endif %}">
+      <div class="event-meta">{{ m.event_name }} &middot; {{ m.event_date.strftime('%-m/%-d/%Y') }} &middot; {{ m.tech_name }}</div>
+      <p style="margin:4px 0;">&ldquo;{{ m.text }}&rdquo;</p>
+      <div>
+        {% for c in m.categories %}<span class="tag tag-misplaced">{{ c }}</span>{% endfor %}
+      </div>
+    </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card">
+  <div class="empty-state">No venue-related feedback yet. It'll show up here once a report's notes mention something like load-in, power, staff, or restrictions.</div>
+</div>
+{% endif %}
+{% endblock %}

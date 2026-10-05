@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Weekend Report{% endblock %}
-{% block nav %}<a href="{{ url_for('admin_report_weekend_archive') }}">Archive</a> &nbsp;|&nbsp; <a href="{{ url_for('admin_events') }}">Events</a> &nbsp;|&nbsp; <a href="{{ url_for('admin_report') }}">Full report</a> &nbsp;|&nbsp; <a href="{{ url_for('admin_logout') }}">Log out</a>{% endblock %}
+{% block nav %}<a href="{{ url_for('admin_report_weekend_archive') }}">Archive</a> &nbsp;|&nbsp; <a href="{{ url_for('venues') }}">Venues</a> &nbsp;|&nbsp; <a href="{{ url_for('admin_events') }}">Events</a> &nbsp;|&nbsp; <a href="{{ url_for('admin_report') }}">Full report</a> &nbsp;|&nbsp; <a href="{{ url_for('admin_logout') }}">Log out</a>{% endblock %}
 
 {% block content %}
 <div class="card">

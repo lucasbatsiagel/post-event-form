@@ -1,8 +1,12 @@
 {% extends "base.html" %}
 {% block title %}Manage Events{% endblock %}
-{% block nav %}<a href="{{ url_for('admin_report') }}">Report</a> &nbsp;|&nbsp; <a href="{{ url_for('admin_logout') }}">Log out</a>{% endblock %}
+{% block nav %}<a href="{{ url_for('venues') }}">Venues</a> &nbsp;|&nbsp; <a href="{{ url_for('admin_report') }}">Report</a> &nbsp;|&nbsp; <a href="{{ url_for('admin_logout') }}">Log out</a>{% endblock %}
 
 {% block content %}
+<datalist id="venue-list">
+  {% for v in all_venues %}<option value="{{ v }}">{% endfor %}
+</datalist>
+
 <div class="card" style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
   <div>
     <h3 style="margin-bottom:2px;">Weekend report</h3>
@@ -21,6 +25,8 @@
     <input type="text" name="name" id="name" placeholder="e.g. Smith Wedding" required>
     <label for="event_date">Event date</label>
     <input type="date" name="event_date" id="event_date" value="{{ today }}" required>
+    <label for="venue">Venue <span style="font-weight:400; text-transform:none; letter-spacing:0;">(optional)</span></label>
+    <input type="text" name="venue" id="venue" list="venue-list" placeholder="e.g. The Westin Boston" autocomplete="off">
     <button type="submit" class="btn btn-block">Add event</button>
   </form>
 </div>
@@ -29,23 +35,30 @@
   <h3>Events</h3>
   {% if events %}
     {% for event in events %}
-      <div class="event-row">
-        <div>
-          <div>{{ event.name }}</div>
-          <div class="event-meta">{{ event.event_date.strftime('%-m/%-d/%Y') }} &middot;
-            <span class="pill {{ 'pill-active' if event.active else 'pill-inactive' }}">
-              {{ 'Open' if event.active else 'Closed' }}
-            </span>
+      <div class="event-row" style="flex-direction:column; align-items:stretch; gap:8px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+          <div>
+            <div>{{ event.name }}</div>
+            <div class="event-meta">{{ event.event_date.strftime('%-m/%-d/%Y') }} &middot;
+              <span class="pill {{ 'pill-active' if event.active else 'pill-inactive' }}">
+                {{ 'Open' if event.active else 'Closed' }}
+              </span>
+              {% if event.venue %} &middot; {{ event.venue }}{% endif %}
+            </div>
+          </div>
+          <div class="event-actions">
+            <form method="post" action="{{ url_for('toggle_event', event_id=event.id) }}">
+              <button type="submit" class="btn btn-secondary btn-small">{{ 'Close' if event.active else 'Reopen' }}</button>
+            </form>
+            <form method="post" action="{{ url_for('delete_event', event_id=event.id) }}" onsubmit="return confirm('Delete this event? This cannot be undone.');">
+              <button type="submit" class="btn btn-danger btn-small">Delete</button>
+            </form>
           </div>
         </div>
-        <div class="event-actions">
-          <form method="post" action="{{ url_for('toggle_event', event_id=event.id) }}">
-            <button type="submit" class="btn btn-secondary btn-small">{{ 'Close' if event.active else 'Reopen' }}</button>
-          </form>
-          <form method="post" action="{{ url_for('delete_event', event_id=event.id) }}" onsubmit="return confirm('Delete this event? This cannot be undone.');">
-            <button type="submit" class="btn btn-danger btn-small">Delete</button>
-          </form>
-        </div>
+        <form method="post" action="{{ url_for('set_event_venue', event_id=event.id) }}" style="display:flex; gap:6px;">
+          <input type="text" name="venue" list="venue-list" autocomplete="off" placeholder="Set venue" value="{{ event.venue or '' }}" style="flex:1;">
+          <button type="submit" class="btn btn-secondary btn-small">Save venue</button>
+        </form>
       </div>
     {% endfor %}
   {% else %}

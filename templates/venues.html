@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Venues{% endblock %}
+{% block nav %}<a href="{{ url_for('admin_events') }}">Events</a> &nbsp;|&nbsp; <a href="{{ url_for('admin_report_weekend') }}">Weekend report</a> &nbsp;|&nbsp; <a href="{{ url_for('admin_logout') }}">Log out</a>{% endblock %}
+
+{% block content %}
+<div class="card">
+  <h2>Venues</h2>
+  <p class="subtitle">Built automatically from venue-related feedback in submitted reports. Set a venue on an event in Events to start tracking it.</p>
+</div>
+
+{% if profiles %}
+  {% for p in profiles %}
+    <a class="event-tile" style="display:block; text-align:left; padding:16px 18px; margin-bottom:12px;" href="{{ url_for('venue_detail', venue_name=p.venue) }}">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+        <div>
+          <div style="font-weight:700;">{{ p.venue }}</div>
+          <div class="event-meta">{{ p.event_count }} event{{ 's' if p.event_count != 1 else '' }} &middot; {{ p.submission_count }} submission{{ 's' if p.submission_count != 1 else '' }}</div>
+        </div>
+        {% if p.mentions %}
+          <span class="tag tag-missing">{{ p.mentions|length }} mention{{ 's' if p.mentions|length != 1 else '' }}</span>
+        {% else %}
+          <span class="pill pill-inactive">No feedback yet</span>
+        {% endif %}
+      </div>
+    </a>
+  {% endfor %}
+{% else %}
+  <div class="card"><div class="empty-state">No venues set yet. Add one from an event in Events.</div></div>
+{% endif %}
+{% endblock %}
