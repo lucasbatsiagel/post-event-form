@@ -19,7 +19,7 @@
 {% if rows %}
   {% for row in rows %}
   <div class="card">
-    <h3>{{ row.event_name }} &mdash; {{ row.event_date }}</h3>
+    <h3>{{ row.event_name }} &mdash; {{ row.event_date }}{% if row.venue %} &mdash; {{ row.venue }}{% endif %}</h3>
     <div class="event-meta">Reported by {{ row.tech_name }} on {{ row.submitted_at[:10] }}</div>
 
     {% if row.misplaced_items %}

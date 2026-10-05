@@ -257,6 +257,7 @@ def build_report(days):
                 "id": s.id,
                 "event_name": s.event_name,
                 "event_date": s.event_date.isoformat(),
+                "venue": s.event.venue if s.event else None,
                 "tech_name": s.tech_name,
                 "misplaced_items": json.loads(s.misplaced_items),
                 "missing_items": json.loads(s.missing_items),
@@ -342,6 +343,7 @@ def build_weekend_report(friday=None, sunday=None):
             events_by_key[key] = {
                 "event_name": s.event_name,
                 "event_date": s.event_date,
+                "venue": s.event.venue if s.event else None,
                 "missing": [],
                 "broken": [],
                 "misplaced": [],
@@ -384,6 +386,7 @@ def build_weekend_report(friday=None, sunday=None):
             {
                 "event_name": ev["event_name"],
                 "event_date": ev["event_date"],
+                "venue": ev["venue"],
                 "lines": lines,
                 "notes": ev["notes"],
             }
@@ -504,7 +507,8 @@ def build_weekend_docx(friday, sunday, stats, narrative, highlights):
     if highlights:
         for h in highlights:
             event_p = doc.add_paragraph()
-            event_run = event_p.add_run(f"{h['event_name']} ({h['event_date'].strftime('%-m/%-d/%Y')})")
+            venue_suffix = f" — {h['venue']}" if h.get("venue") else ""
+            event_run = event_p.add_run(f"{h['event_name']} ({h['event_date'].strftime('%-m/%-d/%Y')}){venue_suffix}")
             event_run.bold = True
             event_run.font.size = Pt(13)
 
