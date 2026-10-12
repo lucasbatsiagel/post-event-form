@@ -5,18 +5,23 @@
 {% block content %}
 <div class="card">
   <h2>Needs Report</h2>
-  <p class="subtitle">Past events with no submissions filed yet.</p>
+  <p class="subtitle">Past events with no submissions filed yet, grouped by weekend.</p>
 </div>
 
-{% if events %}
-  {% for event in events %}
-    <div class="card" style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
-      <div>
-        <div style="font-weight:700;">{{ event.name }}</div>
-        <div class="event-meta">{{ event.event_date.strftime('%A, %-m/%-d/%Y') }}{% if event.venue %} &middot; {{ event.venue }}{% endif %}</div>
+{% if weeks %}
+  {% for week in weeks %}
+  <div class="card">
+    <h3 style="margin-bottom:10px;">{{ week.friday.strftime('%b %-d') }} &ndash; {{ week.sunday.strftime('%b %-d, %Y') }}</h3>
+    {% for event in week.events %}
+      <div style="{% if not loop.first %}margin-top:12px; padding-top:12px; border-top:1px solid var(--line);{% endif %} display:flex; align-items:center; justify-content:space-between; gap:10px;">
+        <div>
+          <div style="font-weight:700;">{{ event.name }}</div>
+          <div class="event-meta">{{ event.event_date.strftime('%A, %-m/%-d/%Y') }}{% if event.venue %} &middot; {{ event.venue }}{% endif %}</div>
+        </div>
+        <span class="tag tag-missing">No report</span>
       </div>
-      <span class="tag tag-missing">No report</span>
-    </div>
+    {% endfor %}
+  </div>
   {% endfor %}
 {% else %}
   <div class="card"><div class="empty-state">All past events have at least one report filed. Nice.</div></div>

@@ -330,7 +330,19 @@ def pending_events_query():
 @app.route("/admin/events/pending")
 @admin_required
 def pending_events():
-    return render_template("pending_events.html", events=pending_events_query().all())
+    events = pending_events_query().all()
+
+    weeks = []
+    weeks_by_friday = {}
+    for event in events:
+        friday = _friday_for_date(event.event_date)
+        if friday not in weeks_by_friday:
+            weeks_by_friday[friday] = {"friday": friday, "sunday": friday + timedelta(days=2), "events": []}
+            weeks.append(weeks_by_friday[friday])
+        weeks_by_friday[friday]["events"].append(event)
+    weeks.sort(key=lambda w: w["friday"], reverse=True)
+
+    return render_template("pending_events.html", weeks=weeks, pending_count=len(events))
 
 
 def _friday_for_date(d):
