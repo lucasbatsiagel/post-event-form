@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Needs Report{% endblock %}
+{% block nav %}<a href="{{ url_for('admin_report') }}">Report</a> &nbsp;|&nbsp; <a href="{{ url_for('admin_events') }}">Events</a> &nbsp;|&nbsp; <a href="{{ url_for('admin_logout') }}">Log out</a>{% endblock %}
+
+{% block content %}
+<div class="card">
+  <h2>Needs Report</h2>
+  <p class="subtitle">Past events with no submissions filed yet.</p>
+</div>
+
+{% if events %}
+  {% for event in events %}
+    <div class="card" style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+      <div>
+        <div style="font-weight:700;">{{ event.name }}</div>
+        <div class="event-meta">{{ event.event_date.strftime('%A, %-m/%-d/%Y') }}{% if event.venue %} &middot; {{ event.venue }}{% endif %}</div>
+      </div>
+      <span class="tag tag-missing">No report</span>
+    </div>
+  {% endfor %}
+{% else %}
+  <div class="card"><div class="empty-state">All past events have at least one report filed. Nice.</div></div>
+{% endif %}
+{% endblock %}

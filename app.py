@@ -209,7 +209,11 @@ def admin_events():
 
     events = Event.query.order_by(Event.event_date.desc()).all()
     return render_template(
-        "admin_events.html", events=events, today=date.today().isoformat(), all_venues=all_venues()
+        "admin_events.html",
+        events=events,
+        today=date.today().isoformat(),
+        all_venues=all_venues(),
+        pending_count=len(pending_events_query().all()),
     )
 
 
@@ -298,6 +302,35 @@ def reassign_submission(submission_id):
         "success",
     )
     return redirect(url_for("admin_report", days=request.form.get("days", 7, type=int)))
+
+
+@app.route("/admin/submissions/<int:submission_id>/delete", methods=["POST"])
+@admin_required
+def delete_submission(submission_id):
+    submission = Submission.query.get_or_404(submission_id)
+    label = f"{submission.tech_name}'s submission for \"{submission.event_name}\""
+    db.session.delete(submission)
+    db.session.commit()
+    flash(f"Deleted {label}.", "success")
+    return redirect(url_for("admin_report", days=request.form.get("days", 7, type=int)))
+
+
+def pending_events_query():
+    """Past events with no submission filed against them yet."""
+    reported_event_ids = {
+        row[0]
+        for row in db.session.query(Submission.event_id).filter(Submission.event_id.isnot(None)).distinct().all()
+    }
+    return (
+        Event.query.filter(Event.event_date <= date.today(), ~Event.id.in_(reported_event_ids))
+        .order_by(Event.event_date.desc())
+    )
+
+
+@app.route("/admin/events/pending")
+@admin_required
+def pending_events():
+    return render_template("pending_events.html", events=pending_events_query().all())
 
 
 def _friday_for_date(d):

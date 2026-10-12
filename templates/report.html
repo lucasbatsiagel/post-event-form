@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Weekly Report{% endblock %}
-{% block nav %}<a href="{{ url_for('venues') }}">Venues</a> &nbsp;|&nbsp; <a href="{{ url_for('admin_events') }}">Events</a> &nbsp;|&nbsp; <a href="{{ url_for('admin_logout') }}">Log out</a>{% endblock %}
+{% block nav %}<a href="{{ url_for('pending_events') }}">Needs report</a> &nbsp;|&nbsp; <a href="{{ url_for('venues') }}">Venues</a> &nbsp;|&nbsp; <a href="{{ url_for('admin_events') }}">Events</a> &nbsp;|&nbsp; <a href="{{ url_for('admin_logout') }}">Log out</a>{% endblock %}
 
 {% block content %}
 <div class="card">
@@ -54,16 +54,22 @@
       <p class="event-meta" style="margin-top:10px;">Nothing flagged &mdash; clean return.</p>
     {% endif %}
 
-    <form method="post" action="{{ url_for('reassign_submission', submission_id=row.id) }}" style="display:flex; gap:6px; margin-top:12px; padding-top:12px; border-top:1px solid var(--line);">
-      <input type="hidden" name="days" value="{{ days }}">
-      <select name="event_id" style="flex:1;">
-        <option value="">Wrong event? Move to&hellip;</option>
-        {% for e in all_events %}
-          <option value="{{ e.id }}">{{ e.name }} ({{ e.event_date.strftime('%-m/%-d/%Y') }})</option>
-        {% endfor %}
-      </select>
-      <button type="submit" class="btn btn-secondary btn-small">Move</button>
-    </form>
+    <div style="display:flex; gap:6px; margin-top:12px; padding-top:12px; border-top:1px solid var(--line);">
+      <form method="post" action="{{ url_for('reassign_submission', submission_id=row.id) }}" style="display:flex; gap:6px; flex:1;">
+        <input type="hidden" name="days" value="{{ days }}">
+        <select name="event_id" style="flex:1;">
+          <option value="">Wrong event? Move to&hellip;</option>
+          {% for e in all_events %}
+            <option value="{{ e.id }}">{{ e.name }} ({{ e.event_date.strftime('%-m/%-d/%Y') }})</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-secondary btn-small">Move</button>
+      </form>
+      <form method="post" action="{{ url_for('delete_submission', submission_id=row.id) }}" onsubmit="return confirm('Delete this submission? This cannot be undone.');">
+        <input type="hidden" name="days" value="{{ days }}">
+        <button type="submit" class="btn btn-danger btn-small">Delete</button>
+      </form>
+    </div>
   </div>
   {% endfor %}
 {% else %}

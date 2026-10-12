@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Manage Events{% endblock %}
-{% block nav %}<a href="{{ url_for('venues') }}">Venues</a> &nbsp;|&nbsp; <a href="{{ url_for('admin_report') }}">Report</a> &nbsp;|&nbsp; <a href="{{ url_for('admin_logout') }}">Log out</a>{% endblock %}
+{% block nav %}<a href="{{ url_for('pending_events') }}">Needs report</a> &nbsp;|&nbsp; <a href="{{ url_for('venues') }}">Venues</a> &nbsp;|&nbsp; <a href="{{ url_for('admin_report') }}">Report</a> &nbsp;|&nbsp; <a href="{{ url_for('admin_logout') }}">Log out</a>{% endblock %}
 
 {% block content %}
 <datalist id="venue-list">
@@ -16,6 +16,20 @@
     <a href="{{ url_for('admin_report_weekend_archive') }}" class="btn btn-secondary btn-small">Archive</a>
     <a href="{{ url_for('admin_report_weekend') }}" class="btn btn-small">View report</a>
   </div>
+</div>
+
+<div class="card" style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+  <div>
+    <h3 style="margin-bottom:2px;">Needs report</h3>
+    <div class="event-meta">
+      {% if pending_count %}
+        {{ pending_count }} past event{{ 's' if pending_count != 1 else '' }} with no submission yet.
+      {% else %}
+        All past events have a report filed.
+      {% endif %}
+    </div>
+  </div>
+  <a href="{{ url_for('pending_events') }}" class="btn btn-secondary btn-small">View</a>
 </div>
 
 <div class="card">
