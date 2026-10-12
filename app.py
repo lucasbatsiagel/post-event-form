@@ -274,7 +274,30 @@ def build_report(days):
 def admin_report():
     days = request.args.get("days", 7, type=int)
     rows = build_report(days)
-    return render_template("report.html", rows=rows, days=days)
+    all_events = Event.query.order_by(Event.event_date.desc()).all()
+    return render_template("report.html", rows=rows, days=days, all_events=all_events)
+
+
+@app.route("/admin/submissions/<int:submission_id>/reassign", methods=["POST"])
+@admin_required
+def reassign_submission(submission_id):
+    submission = Submission.query.get_or_404(submission_id)
+    target_event_id = request.form.get("event_id", type=int)
+    target_event = Event.query.get(target_event_id) if target_event_id else None
+    if not target_event:
+        flash("Pick an event to reassign this submission to.", "error")
+        return redirect(url_for("admin_report", days=request.form.get("days", 7, type=int)))
+
+    old_label = f"{submission.event_name} ({submission.event_date.strftime('%-m/%-d/%Y')})"
+    submission.event_id = target_event.id
+    submission.event_name = target_event.name
+    submission.event_date = target_event.event_date
+    db.session.commit()
+    flash(
+        f'Moved {submission.tech_name}\'s submission from "{old_label}" to "{target_event.name}".',
+        "success",
+    )
+    return redirect(url_for("admin_report", days=request.form.get("days", 7, type=int)))
 
 
 def _friday_for_date(d):
