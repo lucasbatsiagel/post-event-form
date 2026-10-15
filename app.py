@@ -228,6 +228,25 @@ def set_event_venue(event_id):
     return redirect(url_for("admin_events"))
 
 
+@app.route("/admin/events/<int:event_id>/date", methods=["POST"])
+@admin_required
+def set_event_date(event_id):
+    event = Event.query.get_or_404(event_id)
+    date_raw = request.form.get("event_date", "").strip()
+    try:
+        new_date = datetime.strptime(date_raw, "%Y-%m-%d").date()
+    except ValueError:
+        flash("Invalid date.", "error")
+        return redirect(url_for("admin_events"))
+
+    event.event_date = new_date
+    # Keep already-filed submissions' snapshotted date in sync too.
+    Submission.query.filter_by(event_id=event.id).update({"event_date": new_date})
+    db.session.commit()
+    flash(f'Updated date for "{event.name}" to {new_date.strftime("%-m/%-d/%Y")}.', "success")
+    return redirect(url_for("admin_events"))
+
+
 @app.route("/admin/events/<int:event_id>/toggle", methods=["POST"])
 @admin_required
 def toggle_event(event_id):

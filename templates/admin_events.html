@@ -69,6 +69,10 @@
             </form>
           </div>
         </div>
+        <form method="post" action="{{ url_for('set_event_date', event_id=event.id) }}" style="display:flex; gap:6px;">
+          <input type="date" name="event_date" value="{{ event.event_date.isoformat() }}" style="flex:1;">
+          <button type="submit" class="btn btn-secondary btn-small">Save date</button>
+        </form>
         <form method="post" action="{{ url_for('set_event_venue', event_id=event.id) }}" style="display:flex; gap:6px;">
           <input type="text" name="venue" list="venue-list" autocomplete="off" placeholder="Set venue" value="{{ event.venue or '' }}" style="flex:1;">
           <button type="submit" class="btn btn-secondary btn-small">Save venue</button>
