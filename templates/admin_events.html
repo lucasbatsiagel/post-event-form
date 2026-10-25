@@ -33,8 +33,11 @@
 </div>
 
 <div class="card">
-  <h3>Add an event</h3>
-  <form method="post">
+  <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+    <h3 style="margin:0;">Add an event</h3>
+    <a href="{{ url_for('bulk_add_events') }}" class="btn btn-secondary btn-small">Bulk add</a>
+  </div>
+  <form method="post" style="margin-top:14px;">
     <label for="name">Event name</label>
     <input type="text" name="name" id="name" placeholder="e.g. Smith Wedding" required>
     <label for="event_date">Event date</label>

@@ -247,6 +247,80 @@ def set_event_date(event_id):
     return redirect(url_for("admin_events"))
 
 
+def parse_bulk_events(text):
+    """One event per line: 'Name | Venue | MM/DD/YYYY' (venue optional:
+    'Name | MM/DD/YYYY'). Returns (parsed, bad_lines)."""
+    parsed = []
+    bad_lines = []
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        parts = [p.strip() for p in line.split("|")]
+        if len(parts) == 3:
+            name, venue, date_raw = parts
+        elif len(parts) == 2:
+            name, date_raw = parts
+            venue = ""
+        else:
+            bad_lines.append(line)
+            continue
+        try:
+            event_date = datetime.strptime(date_raw, "%m/%d/%Y").date()
+        except ValueError:
+            bad_lines.append(line)
+            continue
+        if not name:
+            bad_lines.append(line)
+            continue
+        parsed.append({"name": name, "venue": venue or None, "event_date": event_date})
+    return parsed, bad_lines
+
+
+@app.route("/admin/events/bulk", methods=["GET", "POST"])
+@admin_required
+def bulk_add_events():
+    if request.method == "POST":
+        parsed, bad_lines = parse_bulk_events(request.form.get("bulk_text", ""))
+        close_others = request.form.get("close_others") == "on"
+
+        added = 0
+        skipped = 0
+        kept_ids = []
+        for item in parsed:
+            existing = Event.query.filter_by(name=item["name"], event_date=item["event_date"]).first()
+            if existing:
+                skipped += 1
+                kept_ids.append(existing.id)
+                continue
+            event = Event(name=item["name"], event_date=item["event_date"], venue=item["venue"])
+            db.session.add(event)
+            db.session.flush()
+            kept_ids.append(event.id)
+            added += 1
+
+        closed = 0
+        if close_others:
+            for event in Event.query.filter(Event.active.is_(True), ~Event.id.in_(kept_ids)).all():
+                event.active = False
+                closed += 1
+
+        db.session.commit()
+
+        msg = f"Added {added} event{'s' if added != 1 else ''}"
+        if skipped:
+            msg += f", {skipped} already existed"
+        if close_others:
+            msg += f", closed {closed} other event{'s' if closed != 1 else ''}"
+        msg += "."
+        if bad_lines:
+            msg += f" Couldn't parse {len(bad_lines)} line(s): {'; '.join(bad_lines[:3])}"
+        flash(msg, "error" if bad_lines else "success")
+        return redirect(url_for("admin_events"))
+
+    return render_template("bulk_add_events.html")
+
+
 @app.route("/admin/events/<int:event_id>/toggle", methods=["POST"])
 @admin_required
 def toggle_event(event_id):

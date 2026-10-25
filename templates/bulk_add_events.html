@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Bulk Add Events{% endblock %}
+{% block nav %}<a href="{{ url_for('admin_events') }}">Events</a> &nbsp;|&nbsp; <a href="{{ url_for('admin_logout') }}">Log out</a>{% endblock %}
+
+{% block content %}
+<div class="card">
+  <h2>Bulk Add Events</h2>
+  <p class="subtitle">One event per line: <code>Name | Venue | MM/DD/YYYY</code> (venue is optional &mdash; <code>Name | MM/DD/YYYY</code> also works).</p>
+  <form method="post">
+    <textarea name="bulk_text" rows="12" style="width:100%; font-family:monospace; font-size:0.85rem;" placeholder="Smith Wedding | The Westin Boston | 10/24/2026&#10;Jones Gala | 10/24/2026"></textarea>
+    <label style="display:flex; align-items:center; gap:8px; margin-top:14px; text-transform:none; font-weight:500; font-size:0.95rem; color:var(--ink);">
+      <input type="checkbox" name="close_others" style="width:auto;">
+      Close every other currently open event after adding these
+    </label>
+    <button type="submit" class="btn btn-block" style="margin-top:14px;">Add events</button>
+  </form>
+</div>
+{% endblock %}
